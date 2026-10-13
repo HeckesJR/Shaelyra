@@ -87,7 +87,7 @@ hr{border:0;border-top:1px solid var(--border);margin:8px 0;opacity:.6}
 /* tabbar */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);display:flex;
   padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:0;color:var(--dim);padding:8px 2px 7px;min-height:56px;font-size:.7rem;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button{flex:1;min-width:0;background:none;border:0;color:var(--dim);padding:8px 1px 7px;min-height:56px;font-size:.66rem;display:flex;flex-direction:column;align-items:center;gap:2px}
 nav button .ic{font-size:1.25rem;line-height:1}
 nav button.on{color:var(--gold2);background:linear-gradient(0deg,rgba(201,149,42,.18),transparent)}
 table.t{width:100%;border-collapse:collapse;font-size:.88rem}
@@ -121,7 +121,10 @@ details summary{cursor:pointer;min-height:40px;display:flex;align-items:center;c
 <!-- ============ KAMPF ============ -->
 <section class="tab" id="t-kampf"></section>
 <!-- ============ STEIGERN ============ -->
+<section class="tab" id="t-reise"></section>
+<section class="tab" id="t-regeln"></section>
 <section class="tab" id="t-steigern"></section>
+<section class="tab" id="t-wuerfe"></section>
 <!-- ============ INFO ============ -->
 <section class="tab" id="t-info"></section>
 
@@ -131,8 +134,9 @@ details summary{cursor:pointer;min-height:40px;display:flex;align-items:center;c
   <button data-tab="proben"><span class="ic">⚄</span>Proben</button>
   <button data-tab="zauber"><span class="ic">✦</span>Zauber</button>
   <button data-tab="kampf"><span class="ic">➶</span>Kampf</button>
-  <button data-tab="steigern"><span class="ic">▲</span>Steigern</button>
-  <button data-tab="info"><span class="ic">☰</span>Info</button>
+  <button data-tab="reise"><span class="ic">☄</span>Reise</button>
+  <button data-tab="regeln"><span class="ic">⌕</span>Regeln</button>
+  <button data-tab="mehr"><span class="ic">☰</span>Mehr</button>
 </nav>
 <div id="sheet"><div class="in" id="sheet-in"></div></div>
 <div class="toast" id="toast"></div>
@@ -322,6 +326,7 @@ const sr=Math.floor((asp||0)/2);
 return`Sicheres Bewegen über Eis und Schnee: kein Einsinken in Tiefschnee, Gleichgewicht auf Eisschollen, kein Einbrechen in dünnes Eis. Bis zu 25 Stein Ausrüstung.<br><br>Auf Körperliche Talente und Kampffertigkeiten auf Eis oder beim Klettern an Eiswänden werden <span class="bold">${z} ZfP*</span> von der Erschwernis abgezogen (kein Bonus). Bei Sturz auf Eis: ${z} Punkte Schaden weniger.<br>Kein Schutz vor Erfrieren oder Hagel; auf dämonisch pervertiertem Eis um 7 erschwert.<br><br><span class="bold">Varianten:</span> Eisspinne (+3): ZfP* auch als Erleichterung, Klettern an Eiswänden und Überhängen. Verankerung (ab ZfW 7): für 1 AsP fester Stand auf Eis.<br><br><span class="bold">Kosten:</span> 5 AsP + 2 AsP/SR${asp>0?` · ${asp} weitere AsP → ca. ${sr} SR`:""}`;
 }
 }
+
 };
 
 /* ================================================================
@@ -331,7 +336,8 @@ const KEY='shaelyra.v1';
 const DEFAULT = ()=>({
   lep:CHAR.max.lep, aup:CHAR.max.aup, asp:CHAR.max.asp, wunden:0,
   fLep:CHAR.falke.lep, fAup:CHAR.falke.aup, kr:0, effekte:[],
-  be:CHAR.be, rs:1, ap:CHAR.ap0, taw:{}, zfw:{}, se:{'Speere':true,'spinnenlauf':true}, log:[], notes:'', phil:''
+  be:CHAR.be, rs:1, ap:CHAR.ap0, taw:{}, zfw:{}, se:{'Speere':true,'spinnenlauf':true}, log:[], notes:'', phil:'',
+  hist:[], sfk:[], neuZ:[], ers:0, ktp:0, kwunden:0, tag:1, ort:'', rationen:0, wasser:0, geld:{D:20,S:4,H:1,K:1}, eintraege:[], idx:null
 });
 let S;
 function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j)return Object.assign(DEFAULT(),j);}catch(e){}return DEFAULT();}
@@ -343,21 +349,29 @@ function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clear
 const num=(id,def=0)=>{const e=$(id);if(!e)return def;const v=parseInt(e.value);return isNaN(v)?def:v;};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function tawOf(name){return S.taw[name]!==undefined?S.taw[name]:(CHAR.talente.find(t=>t[0]===name)||[])[3];}
-function zfwOf(k){if(S.zfw[k]!==undefined)return S.zfw[k];return (CHAR.zauber.find(z=>z[0]===k)||[])[1];}
-function beVal(mode){const b=S.be;switch(mode){case '1':return b;case 'x2':return 2*b;case '-2':return Math.max(0,b-2);case '-3':return Math.max(0,b-3);default:return 0;}}
+function zfwOf(k){if(S.zfw[k]!==undefined)return S.zfw[k];const z=CHAR.zauber.find(z=>z[0]===k);return z?z[1]:0;}
+function ueb(){return Math.max(0,(S.ers||0)-CHAR.attr.KO);}
+function curBE(){return S.be+ueb();}
+function beVal(mode){const b=curBE();switch(mode){case '1':return b;case 'x2':return 2*b;case '-2':return Math.max(0,b-2);case '-3':return Math.max(0,b-3);default:return 0;}}
 const beLabel={'1':'BE','x2':'BE×2','-2':'BE−2','-3':'BE−3'};
 
 /* ================================================================
    NAVIGATION
    ================================================================ */
+const MEHR=['steigern','wuerfe','info'];
 function showTab(t){
+  if(t==='mehr')t=S.mehr||'steigern';
+  const grp=MEHR.includes(t)?'mehr':t;
+  if(MEHR.includes(t))S.mehr=t;
   document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.id==='t-'+t));
-  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
-  S.tab=t;save();
-  ({status:renderStatus,proben:renderProben,zauber:renderZauber,kampf:renderKampf,steigern:renderSteigern,info:renderInfo})[t]();
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===grp));
+  S.tab=t;save();updHdr();
+  ({status:renderStatus,proben:renderProben,zauber:renderZauber,kampf:renderKampf,reise:renderReise,regeln:renderRegeln,steigern:renderSteigern,wuerfe:renderWuerfe,info:renderInfo})[t]();
   window.scrollTo(0,0);
 }
 $('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showTab(b.dataset.tab);});
+function mehrBar(a){return `<div class="chips"><button class="chip ${a==='steigern'?'on':''}" data-goto="steigern">Steigern</button><button class="chip ${a==='wuerfe'?'on':''}" data-goto="wuerfe">Würfe</button><button class="chip ${a==='info'?'on':''}" data-goto="info">Charakter &amp; Sicherung</button></div>`;}
+document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(g)showTab(g.dataset.goto);});
 function openSheet(html){$('sheet-in').innerHTML=html;$('sheet').classList.add('on');$('sheet-in').scrollTop=0;}
 function closeSheet(){$('sheet').classList.remove('on');}
 $('sheet').addEventListener('click',e=>{if(e.target===$('sheet'))closeSheet();});
@@ -399,7 +413,7 @@ function meter(key,label,max,color){
 function renderStatus(){
   updHdr();
   const w=S.wunden;
-  const ini=CHAR.iniBasis+4-S.be-2*w;
+  const ini=CHAR.iniBasis+4-curBE()-2*w;
   const at=n=>n-2*w;
   const effHtml=S.effekte.length?S.effekte.map((e,i)=>`<div class="eff"><div><span class="bold">${esc(e.n)}</span> <span class="dim small">· noch ${e.d} ${e.u}</span></div><button class="btn sm dng" data-act="effdel" data-i="${i}">✕</button></div>`).join(''):'<div class="dim small">Keine laufenden Zauber.</div>';
   $('t-status').innerHTML=`
@@ -419,7 +433,7 @@ function renderStatus(){
       <div class="dim small">Wundschwelle ${CHAR.wundschwelle}: SP ≥ ${CHAR.wundschwelle} = Wunde</div></div>
       <div class="row"><button class="btn" data-act="wund" data-d="-1">−</button><button class="btn" data-act="wund" data-d="1">+</button></div></div>
     ${w>0?`<div class="small warn" style="margin-top:6px">Je Wunde: AT, PA, GE, INI −2, GS −1 → gesamt AT/PA −${2*w}, INI −${2*w}, GS −${w}</div>`:''}
-    <div class="row small dim" style="margin-top:8px"><span>INI aktuell: <b class="bold">${ini} + 1W6</b></span><span>(Basis ${CHAR.iniBasis} +4 Kampfreflexe −BE ${S.be}${w?` −${2*w} Wunden`:''})</span></div>
+    <div class="row small dim" style="margin-top:8px"><span>INI aktuell: <b class="bold">${ini} + 1W6</b></span><span>(Basis ${CHAR.iniBasis} +4 Kampfreflexe −BE ${curBE()}${w?` −${2*w} Wunden`:''})</span></div>
   </div>
   <div class="card">
     <h2>Laufende Zauber &amp; Effekte</h2>
@@ -442,7 +456,7 @@ function renderStatus(){
       <div><label>Behinderung (BE)</label><div class="stepper"><button class="btn" data-act="be" data-d="-1">−</button><input type="number" value="${S.be}" readonly><button class="btn" data-act="be" data-d="1">+</button></div></div>
       <div><label>Rüstungsschutz (RS)</label><div class="stepper"><button class="btn" data-act="rs" data-d="-1">−</button><input type="number" value="${S.rs}" readonly><button class="btn" data-act="rs" data-d="1">+</button></div></div>
     </div>
-    <div class="dim tiny" style="margin-top:6px">Aktuell: Löwenmähne RS 1 / BE 1. BE fließt in Proben und INI ein.</div>
+    <div class="dim tiny" style="margin-top:6px">Aktuell: Löwenmähne RS 1 / BE 1. BE fließt in Proben und INI ein.${ueb()?` <span class="warn">Überanstrengung +${ueb()} BE (gesamt ${curBE()}).</span>`:""}</div>
   </div>
   <div class="card">
     <h2>${esc(CHAR.falke.n)}</h2>
@@ -460,8 +474,8 @@ function renderStatus(){
       <div><label>AuP +</label><input type="number" id="rest-u" inputmode="numeric" placeholder="3W6"></div>
     </div>
     <div class="row" style="margin-top:8px"><button class="btn pri grow" data-act="rest">Gewürfeltes eintragen</button><button class="btn grow" data-act="full">Alles auffüllen</button></div>
-    <div class="dim tiny" style="margin-top:6px">Nachtruhe (6 Std.): 1W6 LeP, 1W6 AsP (+1 je gelungener KO-/IN-Probe). Pro Spielrunde Ruhe: 3W6 AuP (+6 bei KO-Probe).</div>
-  </div>`;
+    <div class="dim tiny" style="margin-top:6px">Nachtruhe (6 Std.): 1W6 LeP, 1W6 AsP (+1 je gelungener KO-/IN-Probe). $1
+  <div class="card"><h2>Letzte Würfe</h2>${histHtml(S.hist.slice(0,3))}<button class="btn full" style="margin-top:8px" data-goto="wuerfe">Alle Würfe</button></div>`;
 }
 function adjVal(k,d){
   const max={lep:CHAR.max.lep,aup:CHAR.max.aup,asp:CHAR.max.asp}[k];
@@ -566,11 +580,13 @@ $('sheet').addEventListener('click',e=>{
     const d=readDice('tpd',3);if(!d){toast('Drei Würfel (1–20) eingeben');return;}
     const t=window._tp;let mod=num('tp-mod',0);const bec=$('tp-be');if(bec&&bec.checked)mod+=CHAR.talente[t.i][4]?beVal(CHAR.talente[t.i][4]):0;
     const r=talentProbe(t.att,t.taw,mod,d);
+    logRoll('Probe',CHAR.talente[t.i][0],'W'+d.join('/')+' → '+(r.ok?'TaP* '+r.tap:'misslungen')+(r.flag?' · '+r.flag:''),r.ok);
     $('tp-res').innerHTML=renderTalentRes(r,t,mod);
   }
   else if(a==='eprobe'){
     const d=parseInt($('ep-d').value);if(isNaN(d)||d<1||d>20){toast('W20 eingeben');return;}
     const mod=num('ep-mod',0),e2=window._ep;const eff=e2.v-mod;const ok=d<=eff;
+    logRoll('Eigenschaft',e2.a,'W20 '+d+' gegen '+eff+' → '+(ok?'gelungen':'misslungen'),ok);
     let extra='';if(d===1)extra='<div class="good">Natürliche 1: gelungen, mögliches Glück (Meister).</div>';if(d===20)extra='<div class="bad">Natürliche 20: Patzergefahr.</div>';
     $('ep-res').innerHTML=`<div class="res ${ok?'ok':'no'}"><div class="big ${ok?'good':'bad'}">${ok?'Gelungen':'Misslungen'}</div><div class="t">W20 ${d} gegen ${e2.a} ${e2.v}${mod?` − ${mod}`:''} = ${eff}${ok?'':` (${d-eff} zu hoch)`}</div>${extra}</div>`;
   }
@@ -597,7 +613,8 @@ function spellCost(k,z,xv,perm){
   if(k==='spinnenlauf')return 7+xv;
   if(k==='firnlauf')return 5+xv;
   if(k==='pe'||k==='ph')return perm?21:8;
-  return SP[k].c;
+  if(String(k).startsWith('x:'))return getSpell(k).c+xv;
+  return getSpell(k).c;
 }
 function spellDur(k,z,xv){
   if(k==='pe'||k==='ph'||k==='chamaelioni')return ['KR',z*10];
@@ -611,7 +628,7 @@ function renderZauber(){
   if(!curSpell)curSpell=CHAR.zauber[0][0];
   $('t-zauber').innerHTML=`
   <div class="card"><h2>Zauber wählen</h2>
-    <div class="chips">${CHAR.zauber.map(z=>`<button class="chip ${curSpell===z[0]?'on':''}" data-act="zs" data-k="${z[0]}">${esc(SP[z[0]].n.split(' (')[0].replace(' Mimikry',''))}</button>`).join('')}</div>
+    <div class="chips">${spellKeys().map(k=>`<button class="chip ${curSpell===k?'on':''}" data-act="zs" data-k="${esc(k)}">${esc(getSpell(k).n.split(' (')[0].replace(' Mimikry',''))}</button>`).join('')}<button class="chip" data-act="zmore">＋ Weitere</button></div>
     <div class="small dim" id="sp-info"></div><div id="sp-pb"></div>
   </div>
   <div class="card"><h2>Werte</h2>
@@ -626,8 +643,8 @@ function renderZauber(){
   initSpell();
 }
 function initSpell(){
-  const k=curSpell,s=SP[k];
-  $('sp-info').textContent=s.info;
+  const k=curSpell,s=getSpell(k);
+  $('sp-info').innerHTML=esc(s.info)+' <button class="btn sm" data-rq="'+esc(s.n.split(' (')[0].replace(' Mimikry','').toLowerCase())+'" style="margin-top:6px">Regeltext suchen</button>';
   $('zfw').value=zfwOf(k);
   $('sp-mr').style.display=s.mr?'block':'none';
   $('sp-x').style.display=s.ex?'block':'none';
@@ -641,7 +658,7 @@ function initSpell(){
   $('sp-res').innerHTML='';
 }
 function calcSpell(){
-  const k=curSpell,s=SP[k];
+  const k=curSpell,s=getSpell(k);
   const attrs=s.a.map(a=>CHAR.attr[a]);
   const zfw=num('zfw',0);
   const dice=readDice('spd',3);if(!dice){toast('Drei Würfel (1–20) eingeben');return;}
@@ -670,6 +687,7 @@ function calcSpell(){
     h+=`ZfW-Puffer <span class="bold">${puffer}</span> − Fehlpunkte <span class="bold">${puffer-rem}</span> = <span class="bold">${rem}</span><br><br>${s.w(ok?rem:null,xv)}</div>`;
   }
   cost=spellCost(k,zfp,xv,permCheck&&permCheck.checked);
+  logRoll('Zauber',s.n.split(' (')[0],'W'+dice.join('/')+' → '+(ones>=2?'kritischer Erfolg, ZfP* '+zfp:tw>=2?'Patzer':(ok?'ZfP* '+zfp:'misslungen')),ok);
   const pay=ok?cost:Math.ceil(cost/2);
   h+=`<hr><div class="row sp"><div>Kosten: <span class="bold">${pay} AsP</span>${ok?'':' <span class="dim small">(halbe Kosten bei Misserfolg)</span>'}${permCheck&&permCheck.checked&&ok?' <span class="dim small">(davon 1 permanent)</span>':''}<div class="dim small">AsP aktuell: ${S.asp}</div></div>
     <button class="btn pri" data-act="buch">Abbuchen</button></div></div>`;
@@ -679,10 +697,11 @@ function calcSpell(){
 $('t-zauber').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='zs'){curSpell=b.dataset.k;renderZauber();}
+  else if(a==='zmore')openSpellList();
   else if(a==='szauber')calcSpell();
   else if(a==='buch'&&lastBuch){
     S.asp=Math.max(0,S.asp-lastBuch.pay);
-    if(lastBuch.dur&&lastBuch.ok){const sd=lastBuch.dur;if(sd[1]>0)S.effekte.push({n:SP[lastBuch.k].n.split(' (')[0],d:sd[1],u:sd[0]});}
+    if(lastBuch.dur&&lastBuch.ok){const sd=lastBuch.dur;if(sd[1]>0)S.effekte.push({n:getSpell(lastBuch.k).n.split(' (')[0],d:sd[1],u:sd[0]});}
     save();toast(`−${lastBuch.pay} AsP${lastBuch.dur&&lastBuch.ok?' · Effekt notiert':''}`);lastBuch=null;b.disabled=true;
   }
 });
@@ -753,14 +772,14 @@ function fernCalc(){
   return eff;
 }
 $('t-kampf').addEventListener('input',e=>{if(kSub==='fern'&&e.target.closest('#t-kampf'))fernCalc();});
-$('t-kampf').addEventListener('change',e=>{if(kSub==='fern')fernCalc();});
+$('t-kampf').addEventListener('change',e=>{if(kSub==='fern')fernCalc();else if(e.target.id==='n-rs'){nRS=parseInt(e.target.value)||0;renderKampf();}});
 $('t-kampf').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='ks'){kSub=b.dataset.s;renderKampf();}
   else if(a==='gm'){if(b.dataset.w==='h')kH=Math.max(0,kH+ +b.dataset.d);else kNS=Math.max(0,kNS+ +b.dataset.d);$(b.dataset.w==='h'?'f-h':'f-n').value=b.dataset.w==='h'?kH:kNS;fernCalc();}
   else if(a==='fgo'){
     const eff=fernCalc(),d=parseInt($('f-d').value);if(isNaN(d)||d<1||d>20){toast('W20 eingeben');return;}
-    const hit=d<=eff;let h=`<div class="res ${hit?'ok':'no'}"><div class="big ${hit?'good':'bad'}">${hit?'Treffer':'Daneben'}</div><div class="t">W20 ${d} gegen ${eff}${hit?'':` (${d-eff} zu hoch)`}`;
+    const hit=d<=eff;logRoll('Fernkampf',CHAR.bogen.n,'W20 '+d+' gegen '+eff+' → '+(hit?'Treffer':'daneben'),hit);let h=`<div class="res ${hit?'ok':'no'}"><div class="big ${hit?'good':'bad'}">${hit?'Treffer':'Daneben'}</div><div class="t">W20 ${d} gegen ${eff}${hit?'':` (${d-eff} zu hoch)`}`;
     if(d===1)h+=`<br><span class="good">Natürliche 1: Glückstreffer möglich (Bestätigungswurf, Meister).</span>`;
     if(d===20)h+=`<br><span class="bad">Natürliche 20: Patzergefahr. Kontrollwurf ohne Modifikatoren auf FK ${CHAR.bogen.fk}; misslingt er, 2W6 auf die Patzertabelle Fernkampf.</span>`;
     h+='</div>';
@@ -779,45 +798,106 @@ $('t-kampf').addEventListener('click',e=>{
     }
     $('f-out').innerHTML=h;
   }
-  else if(a==='nroll')nahRoll(b.dataset.m);
-  else if(a==='nw'){nahSel=+b.dataset.i;renderKampf();}
-  else if(a==='nwb'){nWB=Math.max(0,nWB+ +b.dataset.d);renderKampf();}
+  else if(a==='nroll')nahRoll();
+  else if(a==='nw'){nahSel=+b.dataset.i;manSel='att';nAns=0;renderKampf();}
+  else if(a==='nm'){manSel=b.dataset.k;nAns=0;renderKampf();}
+  else if(a==='nan'){nAns=Math.max(0,nAns+ +b.dataset.d);renderKampf();}
 });
-let nahSel=0,nWB=0;
+const TALMAP={'Jagdspieß (Speere)':'Speere','Jagdmesser (Dolche)':'Dolche','Tritt/Kopfstoß (Raufen)':'Raufen','Raufen':'Raufen','Ringen':'Ringen'};
+let nahSel=0, manSel='att', nAns=0, nRS=0;
+function kTaw(n){if(S.taw[n]!==undefined)return S.taw[n];const k=CHAR.kampftalente.find(x=>x[0]===n);return k?k[1]:0;}
+const MANS=[
+ {k:'att',n:'Attacke',t:'at'},
+ {k:'par',n:'Parade',t:'pa'},
+ {k:'ausw',n:'Ausweichen',t:'pa'},
+ {k:'wucht',n:'Wuchtschlag',t:'at',an:1,tal:['Raufen','Ringen'],info:'AT −Ansage. Gelingt der Schlag und scheitert die Abwehr: TP + halbe Ansage (aufgerundet), mit der SF Wuchtschlag die volle Ansage. Bei Misserfolg sind alle Proben bis zur nächsten Angriffs- oder Abwehraktion um die Ansage erschwert.'},
+ {k:'finte',n:'Finte',t:'at',an:1,tal:['Speere','Dolche','Raufen'],sfRaufen:'Finte',be4:1,info:'AT −Ansage. Die gegnerische Parade oder das Ausweichen ist um die halbe Ansage erschwert. Kein TP-Bonus. BE höchstens 4.'},
+ {k:'gstich',n:'Gezielter Stich',t:'at',an:1,tal:['Speere','Dolche'],sf:'Gezielter Stich',be4:1,info:'AT +4 und +½ gegnerischer RS. Bei Treffer ohne Parade: Rüstung wird ignoriert (TP = SP), Wundschwelle des Gegners −2, plus automatisch eine Wunde. Ansage erschwert die gegnerische Parade.'},
+ {k:'entw',n:'Entwaffnen',t:'at',an:1,tal:['Speere','Dolche'],sf:'Entwaffnen',info:'AT −8 −Ansage, kein Schaden. Misslingt die Parade, bleibt dem Gegner noch eine KK-Probe +8, um die Waffe zu halten. Kein Schild.'},
+ {k:'betaeub',n:'Betäubungsschlag (Knauf)',t:'at',an:1,tal:['Raufen'],sf:'Betäubungsschlag',info:'Raufen-Attacke mit Waffenknauf, um 4 erschwert. Schaden als TP(A); übersteigt der AU-Verlust die Wundschwelle des Opfers, droht Bewusstlosigkeit (KO-Probe).'},
+ {k:'mp',n:'Meisterparade',t:'pa',an:1,tal:['Speere','Dolche','Raufen'],sf:'Meisterparade',be4:1,info:'PA −Ansage. Gelingt die Parade, ist die nächste Angriffsaktion um die Ansage erleichtert (AT +Ansage). BE höchstens 4.'},
+];
+function manWhy(m,w){
+  const tal=TALMAP[w.n];
+  if(m.tal&&!m.tal.includes(tal))return 'nicht mit '+tal;
+  if(m.sf&&!sfHas(m.sf))return 'SF '+m.sf+' fehlt';
+  if(m.sfRaufen&&tal==='Raufen'&&!sfHas(m.sfRaufen))return 'SF '+m.sfRaufen+' fehlt';
+  if(m.be4&&curBE()>4)return 'BE über 4';
+  return '';
+}
+function tpParse(s){const m=/(\d+)W(?:\+(-?\d+))?/.exec(s);return {n:m?+m[1]:1,plus:m&&m[2]?+m[2]:0,a:/\(A\)/.test(s)};}
+function nahState(){
+  const w=CHAR.nahkampf[nahSel],m=MANS.find(x=>x.k===manSel),tal=TALMAP[w.n],wp=2*S.wunden;
+  const tw=kTaw(tal);
+  let base=m.t==='at'?w.at:w.pa;
+  if(m.k==='ausw')base=Math.round(CHAR.paBasis/2)+3-curBE();
+  base-=wp;
+  const cap=Math.max(0,Math.min(tw,base));
+  const a=m.an?Math.min(nAns,cap):0;
+  let mod=0;
+  if(m.k==='gstich')mod=4+Math.ceil(nRS/2);
+  if(m.k==='entw')mod=8;
+  if(m.k==='betaeub')mod=4;
+  const val=base-mod-a;
+  const why=manWhy(m,w);
+  return {w,m,tal,wp,tw,base,cap,a,mod,val,why};
+}
 function nahHtml(){
-  const w=S.wunden;const wp=2*w;
-  const ausw=Math.round(CHAR.paBasis/2)+3-S.be-wp;
-  const wp1=CHAR.nahkampf[nahSel];
+  const st=nahState(),w=st.w,m=st.m;
+  const w1=S.wunden;
+  const manChips=MANS.map(x=>{const why=manWhy(x,w);return `<button class="chip ${manSel===x.k?'on':''}" data-act="nm" data-k="${x.k}" style="${why?'opacity:.5':''}">${x.n.replace(' (Knauf)','')}${why?' 🔒':''}</button>`;}).join('');
+  const tp=tpParse(w.tp);
   return `
   <div class="card"><h2>Waffe</h2>
     <div class="chips">${CHAR.nahkampf.map((x,i)=>`<button class="chip ${nahSel===i?'on':''}" data-act="nw" data-i="${i}">${esc(x.n.split(' (')[0])}</button>`).join('')}</div>
-    <div class="grid3" style="margin-top:4px">
-      <div><div class="lbl">AT</div><div class="mono" style="font-size:1.8rem;font-weight:700">${wp1.at-wp-nWB}</div></div>
-      <div><div class="lbl">PA</div><div class="mono" style="font-size:1.8rem;font-weight:700">${wp1.pa-wp}</div></div>
-      <div><div class="lbl">TP</div><div style="font-size:1.1rem;font-weight:700;padding-top:6px">${wp1.tp}${nWB?` +${nWB}`:''}</div></div>
-    </div>
-    <div class="dim small">${esc(wp1.n)} · INI ${wp1.ini} · WM ${wp1.wm} · BF ${wp1.bf}${wp1.note?' · '+esc(wp1.note):''}</div>
-    ${w?`<div class="warn small" style="margin-top:4px">Wunden (${w}): AT/PA −${wp} bereits abgezogen.</div>`:''}
+    <div class="dim small">${esc(w.n)} · AT ${w.at} / PA ${w.pa} · TP ${w.tp} · INI ${w.ini} · WM ${w.wm} · BF ${w.bf}${w.note?' · '+esc(w.note):''}</div>
+    ${w1?`<div class="warn small" style="margin-top:4px">Wunden (${w1}): AT/PA −${st.wp} sind eingerechnet.</div>`:''}
   </div>
-  <div class="card"><h2>Wuchtschlag (Ansage)</h2>
-    <div class="row sp"><div class="dim small">AT −Ansage, TP +Ansage (Basis-Manöver)</div><div class="stepper"><button class="btn" data-act="nwb" data-d="-1">−</button><b class="mono" style="min-width:28px;text-align:center">${nWB}</b><button class="btn" data-act="nwb" data-d="1">+</button></div></div></div>
+  <div class="card"><h2>Manöver</h2>
+    <div class="chips">${manChips}</div>
+    ${st.why?`<div class="bad small">Nicht möglich: ${esc(st.why)}</div>`:''}
+    <div class="row sp" style="margin-top:6px"><div><div class="lbl" style="margin:0">${m.t==='at'?'Attacke':'Parade'}-Wert (W20 ≤ …)</div><div class="mono" style="font-size:2.3rem;font-weight:700;line-height:1;color:${st.val<5?'var(--red)':st.val<10?'var(--amber)':'var(--green)'}">${st.val}</div></div>
+      ${m.an?`<div><label>Ansage (max. ${st.cap})</label><div class="stepper"><button class="btn" data-act="nan" data-d="-1">−</button><b class="mono" style="min-width:30px;text-align:center;font-size:1.3rem">${st.a}</b><button class="btn" data-act="nan" data-d="1">+</button></div></div>`:''}</div>
+    ${m.k==='gstich'?`<div style="margin-top:8px"><label>RS des Gegners (für die Erschwernis ½ RS)</label><input type="number" id="n-rs" value="${nRS}" inputmode="numeric"></div>`:''}
+    <div class="dim small" style="margin-top:8px">${m.info?esc(m.info):m.k==='ausw'?'Ausweichen: PA-Basis ½ + 3 (Ausweichen I) − BE − Wunden. Mit dem Heldenblatt gegenprüfen.':m.t==='at'?'Gewöhnliche Attacke ohne Besonderheiten.':'Gewöhnliche Parade mit der Waffe.'}</div>
+    ${m.k==='finte'&&st.a?`<div class="info small" style="margin-top:6px">Gegnerische Abwehr erschwert um ${st.a/2}${st.a%2?' (Rundung: Meister)':''}.</div>`:''}
+    ${m.k==='mp'&&st.a?`<div class="info small" style="margin-top:6px">Bei Erfolg: nächste AT +${st.a}.</div>`:''}
+  </div>
   <div class="card"><h2>Würfeln</h2>
-    <label>W20</label><input type="number" id="n-d" min="1" max="20" inputmode="numeric" placeholder="W20">
-    <div class="grid2" style="margin-top:8px"><button class="btn pri" data-act="nroll" data-m="at">Attacke</button><button class="btn pri" data-act="nroll" data-m="pa">Parade</button></div>
+    <div class="grid2"><div><label>W20</label><input type="number" id="n-d" min="1" max="20" inputmode="numeric" placeholder="W20"></div>
+    <div><label>${tp.a?'TP(A)-Würfel':'TP-Würfel'} (1W6, falls Treffer)</label><input type="number" id="n-tw" min="1" max="6" inputmode="numeric" placeholder="1W6"></div></div>
+    ${m.t==='at'?`<div class="grid2" style="margin-top:8px"><div><label>RS des Gegners</label><input type="number" id="n-grs" value="0" inputmode="numeric"></div><div><label>KO des Gegners (optional)</label><input type="number" id="n-ko" inputmode="numeric"></div></div>`:''}
+    <button class="btn pri full" style="margin-top:10px" data-act="nroll" ${st.why?'disabled':''}>Auswerten</button>
     <div id="n-out"></div></div>
-  <div class="card"><h2>Ausweichen &amp; Initiative</h2>
-    <div class="row sp"><div>Ausweichen: <span class="bold mono" style="font-size:1.4rem">${ausw}</span><div class="dim tiny">PA-Basis ½ (${Math.round(CHAR.paBasis/2)}) +3 Ausweichen I −BE${wp?` −Wunden ${wp}`:''}; ohne Gewähr, bitte mit dem Blatt abgleichen</div></div>
-    <div>INI: <span class="bold mono" style="font-size:1.4rem">${CHAR.iniBasis+4-S.be-wp}</span> <span class="dim small">+1W6</span></div></div></div>`;
+  <div class="card"><h2>Initiative</h2><div class="row sp"><div>INI: <span class="bold mono" style="font-size:1.4rem">${CHAR.iniBasis+4-curBE()-st.wp}</span> <span class="dim small">+1W6</span></div><div class="dim tiny">Basis ${CHAR.iniBasis}, Kampfreflexe +4, BE ${curBE()}${st.wp?`, Wunden −${st.wp}`:''}</div></div></div>`;
 }
 function nahInit(){}
-function nahRoll(m){
+function nahRoll(){
+  const st=nahState(),m=st.m,w=st.w;
   const d=parseInt($('n-d').value);if(isNaN(d)||d<1||d>20){toast('W20 eingeben');return;}
-  const w=CHAR.nahkampf[nahSel];const wp=2*S.wunden;
-  const val=m==='at'?w.at-wp-nWB:w.pa-wp;const hit=d<=val;
-  let h=`<div class="res ${hit?'ok':'no'}"><div class="big ${hit?'good':'bad'}">${m==='at'?(hit?'Treffer':'Daneben'):(hit?'Pariert':'Nicht pariert')}</div><div class="t">W20 ${d} gegen ${val}${hit?'':` (${d-val} zu hoch)`}`;
-  if(d===1)h+=`<br><span class="good">Natürliche 1: Glückstreffer möglich: Bestätigungswurf, bei Erfolg doppelte TP bzw. Gegner pariert nicht (Meister).</span>`;
-  if(d===20)h+=`<br><span class="bad">Natürliche 20: Patzergefahr: Bestätigungswurf, bei Misslingen 2W6 Patzertabelle.</span>`;
-  $('n-out').innerHTML=h+'</div></div>';
+  const val=st.val,hit=d<=val;
+  const lab=m.t==='at'?(hit?'Treffer':'Daneben'):(hit?'Pariert':'Nicht pariert');
+  let h=`<div class="res ${hit?'ok':'no'}"><div class="big ${hit?'good':'bad'}">${lab}</div><div class="t">${esc(m.n)}: W20 ${d} gegen ${val}${hit?'':` (${d-val} zu hoch)`}`;
+  if(d===1)h+=`<br><span class="good">Natürliche 1: Glückstreffer möglich (Bestätigungswurf, Meister).</span>`;
+  if(d===20)h+=`<br><span class="bad">Natürliche 20: Patzergefahr (Bestätigungswurf, bei Misslingen 2W6 Patzertabelle).</span>`;
+  if(!hit&&st.a>0)h+=`<br><span class="warn">Ansage missglückt: alle Proben bis zur nächsten Angriffs- oder Abwehraktion um ${st.a} erschwert.</span>`;
+  if(hit&&m.k==='mp'&&st.a>0)h+=`<br><span class="info">Nächste Angriffsaktion: AT +${st.a}.</span>`;
+  if(hit&&m.k==='finte'&&st.a>0)h+=`<br><span class="info">Gegner: Abwehr um ${st.a/2} erschwert.</span>`;
+  h+='</div>';
+  if(m.t==='at'&&hit&&m.k!=='entw'){
+    const tp=tpParse(w.tp),tw=parseInt($('n-tw').value);
+    if(!isNaN(tw)){
+      let bonus=0;if(m.k==='wucht')bonus=sfHas('Wuchtschlag')?st.a:Math.ceil(st.a/2);
+      const tot=tw+tp.plus+bonus;const rs=m.k==='gstich'?0:num('n-grs',0);const sp=Math.max(0,tot-rs);
+      const ko=num('n-ko',0);
+      h+=`<div class="res"><div class="lbl">Schaden${tp.a?' (Ausdauer, Hälfte zusätzlich LeP)':''}</div><div class="t">1W6 (${tw}) + ${tp.plus}${bonus?` + ${bonus} (Ansage)`:''} = <span class="bold">${tot} ${tp.a?'TP(A)':'TP'}</span>${m.k==='gstich'?' · Rüstung ignoriert':` − RS ${rs}`} = <span class="bold">${sp} SP</span>`;
+      if(ko>0){const ws=Math.ceil(ko/2)-(m.k==='gstich'?2:0);const w2=sp>=ws||m.k==='gstich';h+=`<br>Wundschwelle des Gegners ${ws}: <span class="${w2?'bad':'good'} bold">${w2?'Wunde'+(m.k==='gstich'?' (automatisch zusätzlich eine)':''):'keine Wunde'}</span>`;}
+      else if(m.k==='gstich')h+=`<br><span class="bad">Automatisch eine zusätzliche Wunde.</span>`;
+      h+='</div></div>';
+    }else h+=`<div class="dim small" style="margin-top:6px">Für den Schaden den TP-Würfel eintragen: ${w.tp}${st.a&&m.k==='wucht'?' + '+(sfHas('Wuchtschlag')?st.a:Math.ceil(st.a/2)):''}.</div>`;
+  }
+  $('n-out').innerHTML=h;
+  logRoll('Nahkampf',w.n.split(' (')[0]+' · '+m.n,'W20 '+d+' gegen '+val+' → '+lab,hit);
 }
 
 /* ================================================================
@@ -838,11 +918,16 @@ function stItems(){
   CHAR.talente.forEach(t=>{if(t[5]!=='-')out.push({k:'t:'+t[0],n:t[0],cur:tawOf(t[0]),col:t[5],ws:!!t[6],kind:'Talent'});});
   CHAR.kampftalente.forEach(t=>out.push({k:'k:'+t[0],n:t[0]+' (Kampf)',cur:S.taw[t[0]]!==undefined?S.taw[t[0]]:t[1],col:t[2],ws:!!t[3],kind:'Kampf',base:t[0]}));
   CHAR.zauber.forEach(z=>out.push({k:'z:'+z[0],n:SP[z[0]].n.split(' (')[0],cur:zfwOf(z[0]),col:z[2],ws:!!z[3],kind:'Zauber',key:z[0]}));
+  S.neuZ.forEach(k=>out.push({k:'z:'+k,n:SPX[k].n,cur:zfwOf(k),col:xCol(k),ws:true,kind:'Zauber',key:k}));
+  Object.keys(SPX).filter(k=>!S.neuZ.includes(k)).sort((a,b)=>SPX[b].elf-SPX[a].elf||SPX[a].n.localeCompare(SPX[b].n)).forEach(k=>out.push({k:'n:'+k,n:SPX[k].n,cur:0,col:xCol(k),ws:true,kind:'Neuer Zauber',key:k,neu:true}));
   return out;
 }
+function xCol(k){return COLS[clamp(COLS.indexOf(SPX[k].c)+1,0,8)];}
+let stView='tal';
+function stChips(){return `<div class="chips"><button class="chip ${stView==='tal'?'on':''}" data-act="stv" data-v="tal">Talente &amp; Zauber</button><button class="chip ${stView==='sf'?'on':''}" data-act="stv" data-v="sf">Sonderfertigkeiten</button></div>`;}
 function seKey(it){return it.base||it.key||it.n;}
 function stCalc(it,target){
-  let ci=COLS.indexOf(it.col);if(ci<0)ci=2;
+  let ci=COLS.indexOf(it.col);if(ci<0)ci=2;if(it.neu&&stOpt.leit)ci-=1;
   const steps=[];let total=0;
   const shift=(stOpt.sa?-1-(it.ws?1:0):0)+(stOpt.lm?-1:0);
   for(let v=it.cur+1;v<=target;v++){
@@ -857,19 +942,21 @@ function stCalc(it,target){
 }
 function renderSteigern(){
   updHdr();
+  if(stView==='sf'){$('t-steigern').innerHTML=mehrBar('steigern')+stChips()+sfHtml();return;}
   const items=stItems();
   if(!stSel||!items.find(i=>i.k===stSel))stSel=items[0].k;
   const it=items.find(i=>i.k===stSel);
+  if(it.neu)stOpt.act=true;
   const seAvail=!!S.se[seKey(it)];
   if(!seAvail)stOpt.se=false;
   const tgt=stOpt.target&&stOpt.targetFor===it.k?stOpt.target:it.cur+1;
   const calc=stCalc(it,tgt);
   const need=calc.total+(stOpt.act?SKT.akt[clamp(COLS.indexOf(it.col),0,8)]*(stOpt.five?5:1):0);
-  $('t-steigern').innerHTML=`
+  $('t-steigern').innerHTML=mehrBar('steigern')+stChips()+`
   <div class="card"><div class="row sp"><div><div class="lbl" style="margin:0">AP-Guthaben</div><div class="mono" style="font-size:2rem;font-weight:700;color:var(--gold2)">${S.ap}</div></div>
     <div style="width:130px"><label>anpassen</label><input type="number" id="st-ap" value="${S.ap}" inputmode="numeric"></div></div></div>
   <div class="card"><h2>Was steigern?</h2>
-    <select id="st-sel">${['Talent','Kampf','Zauber'].map(g=>`<optgroup label="${g}">${items.filter(i=>i.kind===g).map(i=>`<option value="${i.k}" ${i.k===stSel?'selected':''}>${esc(i.n)} (${i.cur})</option>`).join('')}</optgroup>`).join('')}</select>
+    <select id="st-sel">${['Talent','Kampf','Zauber','Neuer Zauber'].map(g=>`<optgroup label="${g}">${items.filter(i=>i.kind===g).map(i=>`<option value="${i.k}" ${i.k===stSel?'selected':''}>${esc(i.n)} (${i.cur})</option>`).join('')}</optgroup>`).join('')}</select>
     <div class="row sp small dim" style="margin-top:8px"><span>Spalte (inkl. Weltsicht): <b class="bold">${it.col}</b></span><span>aktuell <b class="bold">${it.cur}</b></span></div>
     <div class="grid2" style="margin-top:8px"><div><label>Zielwert</label><div class="stepper"><button class="btn" data-act="sv" data-d="-1">−</button><input type="number" id="st-tgt" value="${tgt}" inputmode="numeric"><button class="btn" data-act="sv" data-d="1">+</button></div></div><div></div></div>
   </div>
@@ -878,7 +965,8 @@ function renderSteigern(){
     <label class="check"><input type="checkbox" data-opt="lm" ${stOpt.lm?'checked':''}> Lehrmeister / Gefährte (−1 Spalte)</label>
     <label class="check"><input type="checkbox" data-opt="sa" ${stOpt.sa?'checked':''}> Salasandra mit der Sippe (−1 Spalte${it.ws?', Weltsicht entfällt':''})</label>
     <label class="check"><input type="checkbox" data-opt="ss" ${stOpt.ss?'checked':''}> Selbststudium (+1 Spalte, ab TaW 10 +2)</label>
-    <label class="check"><input type="checkbox" data-opt="act" ${stOpt.act?'checked':''}> Noch nicht aktiviert (Aktivierung zahlen)</label>
+    ${it.neu?`<label class="check"><input type="checkbox" data-opt="leit" ${stOpt.leit?'checked':''}> als Leitzauber wählen (−1 Spalte, Weltsicht-Aufschlag entfällt)</label>`:''}
+    <label class="check"><input type="checkbox" data-opt="act" ${stOpt.act?'checked':''} ${it.neu?'disabled':''}> Noch nicht aktiviert (Aktivierung zahlen)</label>
     ${stOpt.act?`<label class="check"><input type="checkbox" data-opt="five" ${stOpt.five?'checked':''}> Aktivierung ×5 (wie in deiner Excel)</label>`:''}
   </div>
   <div class="card"><h2>Kosten</h2>
@@ -900,13 +988,15 @@ $('t-steigern').addEventListener('change',e=>{
 });
 $('t-steigern').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.dataset.act==='stv'){stView=b.dataset.v;renderSteigern();return;}
+  if(b.dataset.act==='sfbuy'){const s=SFDB.find(x=>x[0]===b.dataset.n);const c=sfCost(s);if(S.ap<c)return;S.ap-=c;S.sfk.push(s[0]);S.log.push(new Date().toLocaleDateString('de-DE')+': SF '+s[0]+' ('+c+' AP)');save();renderSteigern();toast('Gelernt: '+s[0]);return;}
   if(b.dataset.act==='sv'){const it=stItems().find(i=>i.k===stSel);const cur=stOpt.target&&stOpt.targetFor===stSel?stOpt.target:it.cur+1;stOpt.target=Math.max(it.cur,cur+ +b.dataset.d);stOpt.targetFor=stSel;renderSteigern();}
   else if(b.dataset.act==='sbook'){
     const it=stItems().find(i=>i.k===stSel);const tgt=stOpt.target&&stOpt.targetFor===stSel?stOpt.target:it.cur+1;
     const calc=stCalc(it,tgt);const need=calc.total+(stOpt.act?SKT.akt[clamp(COLS.indexOf(it.col),0,8)]*(stOpt.five?5:1):0);
     if(need>S.ap)return;
     S.ap-=need;
-    if(it.kind==='Zauber')S.zfw[it.key]=tgt;else if(it.kind==='Kampf')S.taw[it.base]=tgt;else S.taw[it.n]=tgt;
+    if(it.kind==='Zauber'||it.kind==='Neuer Zauber'){S.zfw[it.key]=tgt;if(it.neu&&!S.neuZ.includes(it.key))S.neuZ.push(it.key);}else if(it.kind==='Kampf')S.taw[it.base]=tgt;else S.taw[it.n]=tgt;
     if(stOpt.se)S.se[seKey(it)]=false;
     S.log.push(`${new Date().toLocaleDateString('de-DE')}: ${it.n} ${it.cur} → ${tgt} (${need} AP)`);
     stOpt.target=null;stOpt.se=false;stOpt.act=false;save();renderSteigern();toast('Gebucht');
@@ -917,7 +1007,7 @@ $('t-steigern').addEventListener('click',e=>{
    INFO
    ================================================================ */
 function renderInfo(){
-  $('t-info').innerHTML=`
+  $('t-info').innerHTML=mehrBar('info')+`
   <div class="card"><h2>Kampfwerte</h2>
     <table class="t"><tr><td>AT-Basis</td><td>${CHAR.atBasis}</td><td>PA-Basis</td><td>${CHAR.paBasis}</td></tr>
     <tr><td>FK-Basis</td><td>${CHAR.fkBasis}</td><td>INI-Basis</td><td>${CHAR.iniBasis}</td></tr>
@@ -925,23 +1015,10 @@ function renderInfo(){
     <tr><td>Wundschwelle</td><td>${CHAR.wundschwelle}</td><td>Eigenschaften</td><td class="small">${Object.entries(CHAR.attr).map(([k,v])=>k+' '+v).join(', ')}</td></tr></table></div>
   <div class="card"><h2>Vorteile</h2>${CHAR.vorteile.map(v=>`<span class="tag g">${esc(v)}</span>`).join('')}
     <h2 style="margin-top:12px">Nachteile</h2>${CHAR.nachteile.map(v=>`<span class="tag r">${esc(v)}</span>`).join('')}</div>
-  <div class="card"><h2>Sonderfertigkeiten</h2>${Object.entries(CHAR.sf).map(([g,l])=>`<div class="small dim" style="margin-top:4px">${g}</div>${l.map(v=>`<span class="tag b">${esc(v)}</span>`).join('')}`).join('')}</div>
+  <div class="card"><h2>Sonderfertigkeiten</h2>${S.sfk.length?`<div class="small dim" style="margin-top:4px">Neu gelernt</div>${S.sfk.map(v=>`<span class="tag g">${esc(v)}</span>`).join('')}`:''}${Object.entries(CHAR.sf).map(([g,l])=>`<div class="small dim" style="margin-top:4px">${g}</div>${l.map(v=>`<span class="tag b">${esc(v)}</span>`).join('')}`).join('')}</div>
   <div class="card"><h2>Ausrüstung</h2>${CHAR.ausruestung.map(v=>`<div class="small" style="padding:3px 0;border-bottom:1px solid #43321a">${esc(v)}</div>`).join('')}</div>
-  <div class="card"><h2>Regeln auf einen Blick</h2>
-    <details><summary>Talentprobe</summary><div class="small">3W20, jeweils gegen die Eigenschaft. Jeder Punkt über dem Wert kostet 1 TaP. Bleibt TaP ≥ 0 übrig, ist die Probe geglückt (mind. 1 TaP*). Erschwernis senkt den TaW; reicht er nicht, sinken die Eigenschaften. Doppel-1 = Erfolg, Doppel-20 = Patzer; dreifach = spektakulär. Negative TaW wirken wie Erschwernis.</div></details>
-    <details><summary>Zauberprobe</summary><div class="small">Wie Talentprobe mit ZfW. ZfP* sind die übrigen Punkte. Misserfolg: halbe AsP. Erschwernis erst gegen den ZfW, Rest gegen die Eigenschaften.</div></details>
-    <details><summary>Fernkampf-Modifikatoren</summary><table class="t">
-      <tr><th colspan="2">Zielgröße</th></tr><tr><td>winzig / sehr klein / klein</td><td>+8 / +6 / +4</td></tr><tr><td>mittel / groß / sehr groß</td><td>+2 / ±0 / −2</td></tr>
-      <tr><th colspan="2">Deckung &amp; Sicht (Größenklassen kleiner, je +2)</th></tr><tr><td>halbe / ¾ Deckung</td><td>+2 / +4</td></tr><tr><td>Dämmerung, Dunst</td><td>+2</td></tr><tr><td>Mondlicht, Nebel</td><td>+4</td></tr><tr><td>Sternenlicht</td><td>+6</td></tr><tr><td>Finsternis / unsichtbar</td><td>+8</td></tr>
-      <tr><th colspan="2">Bewegung</th></tr><tr><td>stillstehend / unbeweglich</td><td>−2 / −4</td></tr><tr><td>bewegt sich / Ausweichen</td><td>+2 / +4</td></tr>
-      <tr><th colspan="2">Entfernung</th></tr><tr><td>sehr nah / nah / mittel</td><td>−2 / ±0 / +4</td></tr><tr><td>weit / extrem weit</td><td>+8 / +12</td></tr>
-      <tr><th colspan="2">Weitere</th></tr><tr><td>Schnellschuss (Scharfschütze)</td><td>+2 (+1)</td></tr><tr><td>zweiter Schuss / Wurf</td><td>+4 / +2</td></tr></table></details>
-    <details><summary>Wunden</summary><div class="small">Schaden (nach RS) ≥ Wundschwelle (${CHAR.wundschwelle}) = Wunde. Je Wunde AT, PA, GE, INI −2 und GS −1. Bei Pfeilen: Wunde bei mehr als KO/2 − 2 SP. LeP ≤ 5: kampfunfähig, ≤ 0: Lebensgefahr.</div></details>
-    <details><summary>Elfische Weltsicht</summary><div class="small">Alle Talente und Zauber, die keine Leittalente/Leitzauber sind, werden eine Spalte teurer gesteigert. Salasandra mit der Sippe hebt das auf (und senkt zusätzlich um eine Spalte).</div></details>
-  </div>
-  <div class="card"><h2>Phileasson-Saga: Notizen</h2>
-    <textarea id="notes" placeholder="Reiseverlauf, Personen, Hinweise …">${esc(S.phil)}</textarea>
-    <h2 style="margin-top:12px">Weitere Notizen</h2>
+  <div class="card"><h2>Notizen</h2>
+    <textarea id="notes" placeholder="Beliebiges …" style="display:none"></textarea>
     <textarea id="notes2" placeholder="Beliebiges …">${esc(S.notes)}</textarea></div>
   <div class="card"><h2>Sicherung</h2>
     <div class="dim small" style="margin-bottom:8px">Alle Daten liegen nur in diesem Browser. Kopiere sie zur Sicherheit oder stelle sie auf einem anderen Gerät wieder her.</div>
@@ -956,8 +1033,385 @@ $('t-info').addEventListener('click',async e=>{
   else if(b.dataset.act==='reset'){if(confirm('Wirklich alle gespeicherten Daten löschen?')){S=DEFAULT();save();renderInfo();updHdr();}}
 });
 
+/* ================================================================
+   TEIL 2: Würfe, Regeln, Reise, mehr Zauber, Sonderfertigkeiten
+   ================================================================ */
+
+/* ---------- Wurf-Historie ---------- */
+function logRoll(kind,title,text,ok){
+  S.hist.unshift({t:Date.now(),k:kind,n:title,x:text,ok:ok});
+  if(S.hist.length>100)S.hist.length=100;
+  save();
+}
+function histHtml(list){
+  if(!list.length)return '<div class="dim small">Noch keine Würfe.</div>';
+  return list.map(h=>{
+    const d=new Date(h.t);const tm=d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+    const col=h.ok===true?'g':h.ok===false?'r':'b';
+    return `<div style="padding:7px 0;border-bottom:1px solid #43321a"><div class="row sp"><div><span class="tag ${col}">${esc(h.k)}</span> <b class="bold">${esc(h.n)}</b></div><div class="dim tiny">${tm}</div></div><div class="small dim">${esc(h.x)}</div></div>`;
+  }).join('');
+}
+function renderWuerfe(){
+  $('t-wuerfe').innerHTML=mehrBar('wuerfe')+`<div class="card"><h2>Letzte Würfe (${S.hist.length})</h2>${histHtml(S.hist)}
+    ${S.hist.length?'<button class="btn dng full" style="margin-top:10px" data-act="hclear">Verlauf löschen</button>':''}</div>`;
+}
+$('t-wuerfe').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&b.dataset.act==='hclear'&&confirm('Verlauf löschen?')){S.hist=[];save();renderWuerfe();}});
+
+/* ---------- Regel-Suche (Index nur lokal, nicht im Repository) ---------- */
+let RULES=null, rQuery='', rOpen=null;
+const RN=s=>s.toLowerCase().replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/ß/g,'ss');
+function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open('shaelyra',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbGet(k){const db=await idbOpen();return new Promise((res,rej)=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function idbSet(k,v){const db=await idbOpen();return new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function idbDel(k){const db=await idbOpen();return new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').delete(k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+function prepRules(d){return {books:d.books,docs:d.docs.map(a=>({b:a[0],p:a[1],t:a[2],n:RN(a[2])}))};}
+async function ensureRules(){
+  if(RULES)return RULES;
+  try{const d=await idbGet('idx');if(d)RULES=prepRules(d);}catch(e){}
+  return RULES;
+}
+function ruleSearch(q){
+  if(!RULES)return [];
+  const toks=RN(q).split(/[^a-z0-9*]+/).filter(x=>x.length>1);
+  if(!toks.length)return [];
+  const phrase=RN(q).trim();
+  const out=[];
+  for(const d of RULES.docs){
+    let score=0,ok=true;
+    for(const t of toks){const i=d.n.indexOf(t);if(i<0){ok=false;break;}score+=3+Math.min(6,(d.n.split(t).length-1));if(i<80)score+=2;}
+    if(!ok)continue;
+    if(toks.length>1&&d.n.includes(phrase))score+=12;
+    if(d.n.slice(0,60).includes(phrase))score+=15;
+    if(d.b==='Liber Cantiones'&&d.n.includes('probe:'))score+=6;
+    out.push([score,d]);
+  }
+  out.sort((a,b)=>b[0]-a[0]);
+  return out.slice(0,30).map(x=>x[1]);
+}
+function snippet(d,toks){
+  const t=d.t;const n=d.n;let i=-1;
+  for(const k of toks){const j=n.indexOf(k);if(j>=0&&(i<0||j<i))i=j;}
+  const s=Math.max(0,i-90);let sn=t.slice(s,s+320);
+  let h=esc((s>0?'… ':'')+sn+(s+320<t.length?' …':''));
+  for(const k of toks){const re=new RegExp('('+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');h=h.replace(re,'<mark style="background:#6b4f12;color:#fff4d6">$1</mark>');}
+  return h;
+}
+async function renderRegeln(){
+  $('t-regeln').innerHTML=`<div id="r-body"><div class="dim small card">Lade …</div></div>`;
+  await ensureRules();
+  const have=!!RULES;
+  const toks=RN(rQuery).split(/[^a-z0-9*]+/).filter(x=>x.length>1);
+  let res='';
+  if(have&&toks.length){
+    const r=ruleSearch(rQuery);
+    res=r.length?r.map((d,i)=>`<button class="item" data-act="ropen" data-i="${i}" style="display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div class="row sp"><span class="tag b">${esc(d.b)}${d.p?', S. '+d.p:''}</span></div>
+        <div class="small" style="margin-top:4px">${rOpen===i?esc(d.t).replace(/\n/g,'<br>'):snippet(d,toks)}</div></button>`).join(''):'<div class="dim">Nichts gefunden. Anderes Wort oder weniger Begriffe versuchen.</div>';
+    window._rres=r;
+  }
+  $('t-regeln').innerHTML=`
+  <div class="card"><h2>Regel-Suche</h2>
+    <div class="row"><input type="text" id="r-q" placeholder="${have?'z. B. Finte, Kälteschaden, Wundschwelle':'Erst den Index importieren (unten)'}" value="${esc(rQuery)}" ${have?'':'disabled'} style="flex:1" enterkeyhint="search">
+    <button class="btn pri" data-act="rgo" ${have?'':'disabled'}>Suchen</button></div>
+    ${have?`<div class="dim tiny" style="margin-top:6px">${RULES.docs.length} Textstellen aus ${RULES.books.length} Büchern · alle Wörter müssen vorkommen</div>`:''}
+  </div>
+  ${res?`<div class="list" id="r-res">${res}</div>`:''}
+  <div class="card"><h2>Regelbuch-Index</h2>
+    ${have?`<div class="small good">Index geladen.</div>`:`<div class="small dim">Der Index enthält Buchtext und liegt deshalb nicht im öffentlichen Repository. Die Datei <b>regeln_index.json.gz</b> aus dem Ordner <i>Tool/privat</i> einmal pro Gerät hier laden.</div>`}
+    <div class="row" style="margin-top:8px"><label class="btn grow" style="margin:0;text-align:center;cursor:pointer;color:var(--text)"><input type="file" id="r-file" accept=".gz,.json,application/json,application/gzip" style="display:none">${have?'Neuen Index laden':'Index-Datei auswählen'}</label>
+    ${have?'<button class="btn dng" data-act="rdel">Löschen</button>':''}</div>
+    <div id="r-msg" class="small" style="margin-top:6px"></div></div>
+  <div class="card"><h2>Schnelle Hilfe</h2>${cheatHtml()}</div>`;
+  const q=$('r-q');if(q){q.addEventListener('keydown',ev=>{if(ev.key==='Enter'){rQuery=q.value;rOpen=null;renderRegeln();}});}
+  $('r-file').addEventListener('change',importRules);
+}
+async function importRules(ev){
+  const f=ev.target.files[0];if(!f)return;const m=$('r-msg');m.textContent='Lese Datei …';
+  try{
+    let text;
+    if(/\.gz$/i.test(f.name)){
+      if(typeof DecompressionStream==='undefined')throw new Error('Dieser Browser kann .gz nicht entpacken, bitte die .json-Datei nehmen.');
+      const ds=f.stream().pipeThrough(new DecompressionStream('gzip'));
+      text=await new Response(ds).text();
+    }else text=await f.text();
+    m.textContent='Verarbeite …';
+    const d=JSON.parse(text);if(!d.docs||!d.books)throw new Error('Datei hat nicht das erwartete Format.');
+    await idbSet('idx',d);RULES=prepRules(d);
+    toast('Index geladen: '+RULES.docs.length+' Stellen');renderRegeln();
+  }catch(e){m.innerHTML='<span class="bad">Fehler: '+esc(e.message)+'</span>';}
+}
+$('t-regeln').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='rgo'){rQuery=$('r-q').value;rOpen=null;renderRegeln();}
+  else if(a==='ropen'){const i=+b.dataset.i;rOpen=rOpen===i?null:i;renderRegeln();}
+  else if(a==='rdel'&&confirm('Regelbuch-Index von diesem Gerät löschen?')){await idbDel('idx');RULES=null;renderRegeln();}
+});
+function searchFor(q){rQuery=q;rOpen=null;showTab('regeln');}
+document.addEventListener('click',e=>{const r=e.target.closest('[data-rq]');if(r){searchFor(r.dataset.rq);}});
+
+/* ---------- Mehr Zauber (nur Werte, kein Buchtext) ---------- */
+const SPX_RAW=[["Abvenenum reine Speise","KLKLFF","+Mod","15 Akt","je 4 AsP/Mahlz.","1 Schritt","augenblicklich","C","Objk",6,0],["Adlerauge Luchsenohr","KLINFF","","5 Akt","4","Z","1 SR (A)","B","Hell, Eign",7,1],["Adlerschwinge (V1: Blaufalke)","MUINGE","+Mod","20 Akt","4+1(2/3)/SR","Z","nach AsP","D","Form",6,1],["Aeolitus Windgebraus","KLCHKO","","3 Akt","4","ZfP* x 2 Schritt","augenblicklich","B","Umwt, Elem (Luft)",7,0],["Aeropulvis sanfter Fall","KLINGE","","4 Akt","8 AsP","selbst","ZfP* x 2 KR","C","Elem (Luft), Bew",3,0],["Arcanovi Artefakt","KLKLFF","","1+ Std.","10","B","variabel","E","Objk, Meta",1,0],["Armatrutz","INGEKO","","3 Akt","RS²-ZfP*/2 (min. 4)","Z","1 SR (A)","B","Eign, Elem (Erz)",6,1],["Attributo","KLCHEign","","30 Akt","7","B","1 Std.","B","Eign",5,0],["Axxeleratus Blitzgeschwind","KLGEKO","","2 Akt","7","Z, 7 Schritt","ZfP* x 3 KR (A)","C","Eign",6,0],["Balsam Salabunde","KLINCH","+Mod","1 SR","1 pro LP (min. 5)","Z, B","augenblicklich","C","Heil, Form",7,1],["Band und Fessel","KLCHKK","+MR","3+6 Akt","9 AsP","ZfW Schritt","ZfP* Std","C","Einfl",5,0],["Bannbaladin","INCHCH","+MR","5 Akt","7 AsP","3 Schritt","ZfP* SR","B","Einfl",7,0],["Bärenruhe Winterschlaf","MUKKKO","+Mod","3 SR","2 AsP/Tag","Z, B","ZfW x 5 Tage","D","Form",4,0],["Beherrschung brechen","KLINCH","+Mod","40 Akt","7 AsP + X","B","augenblicklich","C","Anti, Herr",4,0],["Beschwörung vereiteln","MUINCH ","+Mod","15 Akt","7 AsP + X","7 Schritt","augenblicklich","C","Anti, Besw",2,0],["Bewegung stören","KLINFF","+Mod","4 Akt","8 AsP + X","ZfW x 7 Schritt","augenblicklich","C","Anti, Tele",4,0],["Blick aufs Wesen","KLINCH","+MR","30 Akt","6 AsP  ","ZfW Schritt  ","30 Akt","C","Hell",6,0],["Blick in die Gedanken","KLKLCH","+MR","10 Akt","6 AsP / 5KR","3 Schritt","nach AsP (A)","D","Hell",5,0],["Blitz dich find","KLINGE","+MR","1 Akt","4 AsP","ZfW Schritt","ZfW/2 Akt","B","Einfl",7,0],["Chamaelioni","INCHGE","","2 Akt","4 AsP","Z","ZfP*x10 KR (A)","C","Illu",5,1],["Chrononautus Zeitenfahrt","MUCHKO","+Mod","1/2 Tag","Speziell","Speziell","variabel","F","Temp",1,0],["Claudibus Clavistibor","KLFFKK","","3 Akt","max ZfW AsP (min 3)","B","ZfP* SR","C","Objk ",2,0],["Corpofesso Gliederschmerz","KLKOKK","+MR","5 Akt","8 AsP","7 Schritt","ZfP*x10 KR","C","Eign",2,0],["Destructibo Arcanitas","KLKLFF","+Mod","1 + Min.","Speziell","B","augenblicklich","E","Anti, Meta, Krft",2,0],["Dunkelheit","KLKLFF","","5 Akt","3 AsP/SR","ZfW/2 Schritt","max. ZfP* SR","C","Umwt",2,0],["Durch Marmorstein und Eisenwand","MUKLGE","","20 Akt","13 AsP+3/SR","Z","max. ZfP* SR ","E","Form, Elem (Erz)",3,0],["Eigenschaften wiederherst.","KLINCH","+Mod","40 Akt","7 Asp. + X","Z, B","augenblicklich","C","Anti, Eign",5,0],["Einfluss bannen","INCHCH","+Mod","40 Akt","5 AsP + X","B","augenblicklich","B","Anti, Einfl",5,0],["Eins mit der Natur","INGEKO","","3 SR","6 AsP","Z ","Sonnenaufgang","C","Eign, Elem",2,0],["Eiseskälte Kämpferherz","MUINKO","","2 Akt","5 Asp +1/KR","Z","2x ZfW KR (A)","C","Eign ",3,0],["Elfenstimme Flötenton","INCHKO","","40 Akt","6 AsP+1/SR","Z","max. ZfP*/2 SR","D","Vers",2,0],["Exposami Lebenskraft","KLININ","","15 Akt","4 AsP","ZfP*x3 Schritt","15 Akt","B","Hell",6,0],["Falkenauge Meisterschuss","INFFGE","","4 Akt","5 AsP","Z, B","ZfW KR / 1 Pfeil","B","Eign",6,0],["Fesselranken","KLINKK","+MR","3 Akt","10 AsP","7 Schritt","ZfP* KR","C","Elem (Humus), Umwt",1,0],["Feuerbann (II) (=Leib d. Feuers)","MUMUGE","","20 Akt","12 AsP+2/SR","Z","max. ZfP* SR ","E","Form, Elem (Feuer)",2,0],["Feuermähne Flammenhuf","INCHKO","","10 Akt","15 AsP","Speziell","ZfP* /2 Stunden","E","Besw, Elem (Feuer)",1,0],["Firnlauf","MUKLGE","","6 Akt","5 AsP+2/SR","Z, B","nach AsP (A)","D","Elem (Eis), Eign",2,1],["Flim Flam Funkel","KLKLFF","","2 Akt","1 AsP/SR","ZfW Schritt","nach AsP   ","A","Umwt",7,0],["Fulminictus Donnerkeil","INGEKO","","2 Akt","2W6+ZfP*","7 Schritt","augenblicklich","C","Scha, Krft",7,0],["Gedankenbilder Elfenruf","KLINCH","","5 Akt","4 AsP/5KR","ZfP*x100 S.","ZfP*x5 KR (A)","B","Vers",7,0],["Glacoflumen Fluss aus Eis","INKOGE","","10 Akt","3+1A/Schritt","3 Schritt","ZfP* x 10 KR","F","Elem (Eis), Umwt",2,0],["Harmlose Gestalt","KLCHGE","","10 Akt","6 AsP","Z","ZfP* SR (A)","C","Einfl, Illu",2,0],["Haselbusch und Ginsterkraut","CHFFKO","","1 SR / AsP","min. 3 AsP","B","augenblicklich","D","Eign, Elem (Humus), Form",5,0],["Hellsicht trüben","KLINCH","+MR","2 Akt","MR, min. 6","ZfW Schritt","ZfP*/2 SR","C","Anti, Hell",4,0],["Herr über das Tierreich","MUMUCH","+MR","5 Akt","GW AsP (4)","3 Schritt","ZfP* SR  ","D","Herr",3,0],["Hilfreiche Tatze-rettende Schwinge","MUINCH","+MR","20 Akt","3 AsP+GW","ZfP*x100 S.","ZfP*SR","D","Einfl, Vers",4,0],["Ignimorpho Feuerform","MUFFKO","","4 Akt","5 AsP / SR","ZfW Schritt","augenblicklich","D","Elem (Feuer), Objk",3,0],["Infinitum immerdar","KLCHKO","+Mod","speziell","speziell","B","permanent","F","Meta, Temp",1,0],["Katzenaugen","KLFFKO","","10 Akt","1 AsP / 3SR","Z","nach AsP (A)","C","Eign",3,0],["Klarum Purum","KLKLCH","+Mod","7 Akt","1 AsP/Stufe","Z, B","augenblicklich","D","Form, Heil",3,0],["Koboldovision","MUCHCH","","10 Akt","10 AsP","Z","ZfP*/2 SR","D","Hell, Limb",1,0],["Kraft des Humus","INCHKO","","40 Akt","12 AsP","ZfW Schritt","ZfP* Stunden","D","Elem (Humus), Heil",2,0],["Krötensprung","INGEKK","","7 Akt","3 AsP","Z, B","augenblicklich","B","Eign",3,0],["Leib der Erde","MUINGE","","20 Akt","10 AsP+1/SR","Z","max. ZfP* SR ","D","Form, Elem (Humus)",3,0],["Leib der Wogen","MUKLGE","","20 Akt","12 AsP+1/SR","Z","max. ZfP* SR ","E","Form, Elem (Wasser)",2,0],["Leib des Eises","MUKLGE","","20 Akt","13 AsP+3/SR","Z","max. ZfP* SR ","E","Form, Elem (Eis)",3,0],["Leib des Erzes","MUGEKK","","20 Akt","12 AsP+2/SR","Z","max. ZfP* SR ","E","Form, Elem (Erz)",3,0],["Leib des Feuers","MUMUGE","","20 Akt","11 AsP+2/SR","Z","max. ZfP* SR ","E","Form, Elem (Feuer)",2,0],["Leib des Windes","MUGEKK","","20 Akt","12 AsP+1/SR","Z","max. ZfP* SR ","E","Form, Elem (Luft)",3,0],["Manifesto Element","KLINCH","+Mod","10 Akt","3 AsP","1 Schritt","max. ZfP* SR","A","Elem ",2,0],["Memorabia Falsifir","KLINCH","+MR +Mod","3 SR","8 AsP","B","max. ZfW Tage","E","Herr",3,0],["Metamorpho Felsenform","KLFFKK","","20 + Akt","3 AsP/RS","B","augenblicklich","D","Elem (Erz), Objk",2,0],["Metamorpho Gletscherform","KLFFKK","","20 + Akt","3 AsP/RS","B","augenblicklich","C","Elem (Eis), Objk",4,0],["Motoricus","KLFFKK","+Mod","5 Akt","min. 3:Stein*Schritt ASP","7 Schritt","1 SR","C","Tele",4,0],["Movimento Dauerlauf","INGEKO","","20 Akt","5 Asp+1/h","selbst","max. ZFP* h","A","Eign",7,0],["Nebelwand und Morgendunst","KLFFKO","","5 Akt","min. 4 AsP","ZfW Schritt","ZfP*x2 SR","C","Umwt, Elem (Luft), Elem (Wasser)",6,0],["Objectovoco","KLINCH","","25 Akt","5+2 AsP","B","1 SR","C","Vers",4,0],["Odem Arcanum","KLININ","+Mod","4 Akt","4 AsP","ZfW. Schritt","1 KR","A","Hell, Krft",7,0],["Penetrizzel Tiefenblick","KLKLKO","","5 Akt +1/Spann","3+1 A/Spann","nach AsP","ZfP*x2 KR (A)","C","Hell",4,0],["Pestilenz erspüren","KLINCH","+Mod","3 SR","6 AsP","Z, B","3SR","C","Hell ",3,0],["Pfeil der Luft","KLINCH","","20 Akt","8 AsP","B","ZfP*x10 KR","C","Elem (Luft), Objk",5,0],["Pfeil des Eises","KLINCH","","20 Akt","8 AsP","B","ZfP*x10 KR","C","Elem (Eis), Objk",3,1],["Pfeil des Feuers","KLINCH","","20 Akt","8 AsP","B","ZfP*x10 KR","C","Elem (Feuer), Objk",1,0],["Pfeil des Humus","KLINCH","","20 Akt","8 AsP","B","ZfP*x10 KR","C","Elem (Humus), Objk",4,1],["Pfeil des Wassers","KLINCH","","20 Akt","8 AsP","B","ZfP*x10 KR","C","Elem (Wasser), Objk",1,0],["Plumbumbarum schwerer Arm","CHGEKK","+Mod","3 Akt","4+2/Gegner","7 Schritt","5 KR","B","Einfl",4,0],["Psychostabilis","MUKLKO","","5 Akt","8+1AsP/SR","B","nach AsP","C","Anti, Eign",3,0],["Respondami Wahrheitszwang","MUINCH","+MR","3 Akt","3 AsP","1 Schritt","augenblicklich","B","Herr",4,0],["Ruhe Körper - ruhe Geist","KLCHKO","","20 Akt","3 AsP +1/St","B","augenblicklich","B","Heil",5,0],["Sanftmut","MUCHCH","+MR","4 Akt","GW/2, min. 3 AsP","7 Schritt","1 SR","B","Einfl",4,0],["Schadenszauber bannen","MUINKO","+Mod","4 Akt","6 AsP + X","7 Schritt","augenblicklich","C","Anti, Scha",2,0],["Seelentier erkennen","ININCH","+MR","10 Akt","7 AsP","3 Schritt","20 Akt.","C","Hell",1,0],["Seidenzunge Elfenwort","KLINCH","+MR","6 Akt","6 AsP","1 Schritt","ZfP* SR (A)","B","Einfl",3,0],["Sensibar Empathicus","KLINCH","+MR","10 Akt","3 AsP/10A.","ZfW Schritt","nach AsP (A)","C","Hell",7,0],["Silentium Silentille","KLINCH","","2 Akt","1 AsP/5R+SR","ZfW Schritt R.","nach AsP (A)","B","Umwt",7,0],["Solidirid Weg aus Licht","INKOKK","","11 Akt + X","3+1AsP/Schritt","ZfW*7 Schritt","ZfWx10 Akt. (A)","D","Umwt, Elem (Luft)",4,0],["Somnigravis tiefer Schlaf","KLCHCH","+MR","7 Akt","7 AsP","ZfW Schritt","ZfP*/2 Stunden","B","Einfl",6,0],["Spinnenlauf","INGEKK","","10 Akt","7 AsP+2/SR","Z, B","nach AsP (A)","C","Eign",2,1],["Spurlos Trittlos","INGEGE","","10 Akt","4 AsP+2/SR","Z","ZfP* SR (A)","C","Umwt",6,0],["Standfest Katzengleich","INGEFF","","4 Akt","6 AsP+2/KR","Z","ZfP*x3 KR (A)","C","Eign",2,0],["Steinmauer","MUKLCH","","30 Akt","5+2A/Schritt","7 Schritt","ZfP* SR","D","Elem (Erz)",1,0],["Stimme des Windes","MUININ","","2 SR","6+3A/Stunde","selbst","nach AsP (A)","D","Form, Elem (Luft)",4,0],["Sumpfstrudel","MUINKK","","16 Akt","3 AsP/Schritt","ZfWx20Schritt","30 KR (A)","D","Elem (Humus), Umwt",1,0],["Tiere besprechen","MUINCH","+Mod","50 Akt","Speziell","B","augenblicklich","C","Heil, Form",2,0],["Tiergedanken","MUINCH","+MR","20 Akt","7 AsP/SR","ZfW Schritt","nach AsP (A)","C","Hell, Vers",5,0],["Traumgestalt","INCHCH","+MR","1 SR","min. 7 AsP","ZfWx10 Meilen","nach AsP (A)","D","Vers",3,0],["Unberührt von Satinav","KLFFKO","+Mod","1 SR","1AsP/5St. (3)","B","max. ZfW Tage","C","Objk, Temp",1,0],["Unitatio Geistesbund","INCHKO","","30 Akt","1 AsP","B","Speziell","B","Vers, Krft",7,0],["Unsichtbarer Jäger","INFFGE","","10 Akt","4 AsP/SR","Z","max. ZfP*SR (A)","E","Illu",2,0],["Verständigung stören","KLKLIN","+MR","2 Akt","MR AsP (5)","ZfW Schritt","ZfP*/2 x SR","C","Anti, Vers",6,0],["Visibili Vanitar","KLINGE","","3 Akt/Person","4 AsP/P+SR","Z, B","max. ZfP* SR (A)","C","Form",6,0],["Wasseratem","MUKLKO","","30 Akt","6+3 AsP/SR","Z, B","nach AsP","C","Form",6,0],["Wasserwall","MUKLCH","","30 Akt","5+2A/Schritt","7 Schritt","ZfP* SR","D","Elem (Wasser)",1,0],["Weisheit der Bäume","MUINKO","+Mod","6 SR","11+3A/Monat","Z","max. ZfW Monate","D","Form, Elem (Humus)",2,0],["Weisse Mähn' und gold'ner Huf","KLINCH","","10 Akt","12 AsP","Speziell","ZfP* Stunden","D","Besw",5,0],["Wellenlauf","MUGEGE","","6 Akt","7 AsP+3/SR","Z","nach AsP (A)","D","Elem (Wasser), Eign",3,0],["Windbarriere","MUKLCH","","30 Akt","5+2A/Schritt","7 Schritt","ZfP* SR","D","Elem (Wind)",1,0],["Windgeflüster","KLININ","","5 Akt","6 AsP","selbst","augenblicklich","B","Vers, Elem (Luft)",1,0],["Windstille","KLCHKK","+Mod","30 Akt","5 AsP/SR","ZfWx3 Schritt R","nach AsP (A)","C","Elem (Luft), Umwt",6,0],["Wipfellauf","MUINGE","","6 Akt","6+2AsP/SR","Z","nach AsP (A)","D","Elem (Humus), Eign",2,0],["Zauberklinge Geisterspeer","KLFFKO","","1 SR","4+1 AsP/ TP","B","ZfP* Tage","D","Objk, Krft",2,0],["Zaubernahrung Hungerbann","MUMUKO","+Mod","3 SR","2-4-6...AsP","Z","Sonnenaufgang","C","Eign, Einfl",3,0],["Zauberwesen der Natur","MUINCH","","1 SR","11 AsP","ZfP*x100 S. R.","Speziell","B","Rufe, Vers",2,0],["Zwang zur Wahrheit","MUINCH","+MR","3 Akt","3 AsP","1 Schritt","augenblicklich","B","Herr",4,0]];
+const SPX={};
+SPX_RAW.forEach(r=>{
+  if(r[10])return; // schon bekannt
+  SPX['x:'+r[0]]={n:r[0].replace(/ \(V1: Blaufalke\)/,''),a:[r[1].slice(0,2),r[1].slice(2,4),r[1].slice(4,6)],m:r[2],zd:r[3],k:r[4],r:r[5],w:r[6],c:r[7],mk:r[8],elf:r[9]};
+});
+function costNum(k){const m=String(k).match(/(\d+)/);return m?parseInt(m[1]):0;}
+function getSpell(k){
+  if(SP[k])return SP[k];
+  const x=SPX[k];if(!x)return SP.adlerauge;
+  if(x._g)return x._g;
+  const mr=/MR/.test(x.m);
+  x._g={n:x.n,a:x.a,c:costNum(x.k),mr:mr,ex:true,xl:'Zusätzliche AsP (laut Kostenangabe)',pfeil:false,
+    info:`Probe: ${x.a.join('/')}${x.m?' ('+x.m+')':''} · Zauberdauer ${x.zd} · Kosten ${x.k} AsP · Reichweite ${x.r} · Wirkungsdauer ${x.w} · Komplexität ${x.c} · Merkmale ${x.mk} · Elfen-Verbreitung ${x.elf}`,
+    w(z,asp){
+      if(z===null)return 'Die Probe ist misslungen – der Zauber wirkt nicht.';
+      return `Gelungen mit <span class="bold">${z} ZfP*</span>.<br><br><span class="bold">Dauer:</span> ${esc(x.w)}<br><span class="bold">Reichweite:</span> ${esc(x.r)}<br><span class="bold">Kosten laut Liste:</span> ${esc(x.k)} AsP<br><br>Wirkung und Varianten stehen im Regelbuch. <button class="btn sm" data-rq="${esc(x.n.split(' ')[0].toLowerCase())} ${esc(x.mk.split(',')[0].toLowerCase())}">Regeltext suchen</button>`;
+    }};
+  return x._g;
+}
+function spellKeys(){return CHAR.zauber.map(z=>z[0]).concat(S.neuZ);}
+let spSheetQ='';
+function openSpellList(){
+  const list=Object.keys(SPX).filter(k=>!S.neuZ.includes(k)).filter(k=>RN(SPX[k].n).includes(RN(spSheetQ)));
+  list.sort((a,b)=>SPX[b].elf-SPX[a].elf||SPX[a].n.localeCompare(SPX[b].n));
+  openSheet(`<div class="hd"><h2>Weitere Zauber</h2><button class="btn sm" data-sheet="close">Schließen</button></div>
+  <div class="dim small" style="margin-bottom:8px">Zauber der elfischen Repräsentation. Zum Ausprobieren auswählen; zum Dauerhaften Lernen im Tab Mehr → Steigern.</div>
+  <input type="text" id="spq" placeholder="Suchen …" value="${esc(spSheetQ)}" style="margin-bottom:8px">
+  <div class="list">${list.slice(0,60).map(k=>`<button class="item" data-act="spx" data-k="${esc(k)}"><div><div class="nm">${esc(SPX[k].n)}</div><div class="at">${SPX[k].a.join('/')} · Komplexität ${SPX[k].c} · ${esc(SPX[k].mk)}</div></div><div class="tw">${SPX[k].elf}</div></button>`).join('')||'<div class="dim">Nichts gefunden.</div>'}</div>
+  ${list.length>60?`<div class="dim tiny">… ${list.length-60} weitere: Suche eingrenzen.</div>`:''}`);
+  const q=$('spq');q.addEventListener('input',()=>{spSheetQ=q.value;const p=q.selectionStart;openSpellList();const n=$('spq');n.focus();n.setSelectionRange(p,p);});
+}
+$('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-act="spx"]');if(!b)return;curSpell=b.dataset.k;closeSheet();showTab('zauber');});
+
+/* ---------- Reise ---------- */
+let rSub='log', rKind='Alle', rFilter='Alle';
+const KINDS=['Notiz','Ort','Person','Kampf','Fund','Rätsel'];
+const MIN=60;
+function geldK(){return S.geld.D*1000+S.geld.S*100+S.geld.H*10+S.geld.K;}
+function setGeldK(k){k=Math.max(0,k);S.geld.D=Math.floor(k/1000);k%=1000;S.geld.S=Math.floor(k/100);k%=100;S.geld.H=Math.floor(k/10);S.geld.K=k%10;}
+const WERT={D:1000,S:100,H:10,K:1};
+function renderReise(){
+  const chips=[['log','Logbuch'],['vorrat','Vorräte &amp; Geld'],['kaelte','Kälte'],['marsch','Marsch']].map(([k,l])=>`<button class="chip ${rSub===k?'on':''}" data-act="rs" data-s="${k}">${l}</button>`).join('');
+  let body='';
+  if(rSub==='log')body=logHtml();else if(rSub==='vorrat')body=vorratHtml();else if(rSub==='kaelte')body=kaelteHtml();else body=marschHtml();
+  $('t-reise').innerHTML=`<div class="chips">${chips}</div>`+body;
+  if(rSub==='kaelte')kaelteCalc();
+  if(rSub==='marsch')marschCalc();
+}
+function logHtml(){
+  const list=S.eintraege.filter(e=>rFilter==='Alle'||e.kind===rFilter);
+  return `<div class="card"><h2>Neuer Eintrag</h2>
+    <div class="chips">${KINDS.map(k=>`<button class="chip ${rKind===k?'on':''}" data-act="rk" data-k="${k}">${k}</button>`).join('')}</div>
+    <div class="grid2"><div><label>Titel / Name</label><input type="text" id="l-t" placeholder="${rKind==='Person'?'Name':rKind==='Ort'?'Ortsname':'Kurztitel'}"></div>
+    <div><label>Reisetag</label><input type="number" id="l-d" value="${S.tag}" inputmode="numeric"></div></div>
+    <label style="margin-top:8px">Text</label><textarea id="l-x" placeholder="Was ist passiert, wer ist das, was fällt auf …"></textarea>
+    <button class="btn pri full" style="margin-top:8px" data-act="ladd">Eintragen</button></div>
+  <div class="chips">${['Alle'].concat(KINDS).map(k=>`<button class="chip ${rFilter===k?'on':''}" data-act="lf" data-k="${k}">${k}</button>`).join('')}</div>
+  ${list.length?list.slice().reverse().map(e=>`<div class="card"><div class="row sp"><div><span class="tag a">Tag ${e.tag}</span><span class="tag b">${esc(e.kind)}</span></div><div class="row"><button class="btn sm" data-act="ledit" data-id="${e.id}">Bearbeiten</button><button class="btn sm dng" data-act="ldel" data-id="${e.id}">✕</button></div></div>
+    ${e.title?`<h3>${esc(e.title)}</h3>`:''}<div class="small" style="white-space:pre-wrap">${esc(e.text)}</div></div>`).join(''):'<div class="dim card">Noch keine Einträge.</div>'}`;
+}
+function vorratHtml(){
+  const total=geldK()/1000;
+  return `<div class="card"><h2>Reisetag</h2>
+    <div class="row sp"><button class="btn" data-act="rtag" data-d="-1">−</button><div style="text-align:center"><div class="bold mono" style="font-size:1.8rem">Tag ${S.tag}</div></div><button class="btn" data-act="rtag" data-d="1">+</button></div>
+    <label style="margin-top:8px">Aufenthaltsort / Position</label><input type="text" id="v-ort" value="${esc(S.ort)}" placeholder="z. B. an Bord, Küste bei …">
+    <button class="btn full" style="margin-top:8px" data-act="rend">Tag beenden (Reisetag +1, 1 Ration weniger)</button></div>
+  <div class="card"><h2>Vorräte</h2>
+    <div class="grid2"><div><div class="lbl">Rationen</div><div class="row sp"><button class="btn sm" data-act="rv" data-k="rationen" data-d="-1">−</button><b class="mono" style="font-size:1.5rem">${S.rationen}</b><button class="btn sm" data-act="rv" data-k="rationen" data-d="1">+</button></div></div>
+    <div><div class="lbl">Wasser (Maß)</div><div class="row sp"><button class="btn sm" data-act="rv" data-k="wasser" data-d="-1">−</button><b class="mono" style="font-size:1.5rem">${S.wasser}</b><button class="btn sm" data-act="rv" data-k="wasser" data-d="1">+</button></div></div></div>
+    <div class="dim tiny" style="margin-top:6px">Firnelfen meiden Milchprodukte (Nahrungsrestriktion). Der Wasserschlauch fasst 3,75 Maß.</div></div>
+  <div class="card"><h2>Geld</h2>
+    <div class="grid4">${['D','S','H','K'].map(k=>`<div style="text-align:center"><div class="lbl">${{D:'Dukaten',S:'Silber',H:'Heller',K:'Kreuzer'}[k]}</div><div class="mono bold" style="font-size:1.5rem">${S.geld[k]}</div></div>`).join('')}</div>
+    <div class="dim tiny" style="text-align:center">Gesamt ${total.toFixed(2)} Dukaten (1 D = 10 S = 100 H = 1000 K)</div>
+    <div class="row" style="margin-top:8px"><input type="number" id="g-a" placeholder="Betrag" inputmode="numeric" style="flex:1"><select id="g-w" style="flex:1"><option value="D">Dukaten</option><option value="S" selected>Silber</option><option value="H">Heller</option><option value="K">Kreuzer</option></select></div>
+    <div class="grid2" style="margin-top:8px"><button class="btn" data-act="gpay">Bezahlen</button><button class="btn pri" data-act="gget">Erhalten</button></div>
+    <div class="dim tiny" style="margin-top:6px">Schulden: 700 Dukaten (Nachteil).</div></div>`;
+}
+
+/* --- Kälte (Wege des Entdeckers, S. 154) --- */
+const KDMG=['keiner','1W6 kTP / 6 Std.','1W6 kTP / Std.','1W6 kTP / Viertelstunde','1W6 kTP / Spielrunde','1W6 kTP / Minute','1W6 kTP / halbe Minute','1W6 kTP / 2 KR','1W6 kTP / KR'];
+const KNAMEN=['mäßig warm','kühl','kalt','frostig','eisig','firunsfrostig','grimmfrostig','namenlos kalt','niederhöllisch kalt'];
+function kClass(t){if(t>10)return 1;if(t>0)return 2;if(t>-10)return 3;if(t>-20)return 4;if(t>-35)return 5;if(t>-50)return 6;if(t>-100)return 7;if(t>-150)return 8;return 9;}
+const KSCHUTZ=[[0,'dünner Stoff (0)'],[1,'Wolle, Leinen, Leder (1)'],[2,'dünner Pelz, dicke Wolle, Bausch (2)'],[3,'dicker Pelz (3)'],[4,'Anaurak, gut verarbeitet (4)']];
+const KOPT=(sel)=>KSCHUTZ.map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${l}</option>`).join('');
+let K={t:-5,wind:0,feucht:false,feuer:false,body:3,kopf:1,fuss:2,zust:'trocken',schlecht:false,res:true,akk:false};
+function kaelteHtml(){
+  return `<div class="card"><div class="row sp"><div><div class="lbl" style="margin:0">Kälteklasse</div><div id="k-class" class="bold" style="font-size:1.6rem">–</div></div><div id="k-dmg" style="text-align:right;font-size:1.05rem;font-weight:700"></div></div><div id="k-brk" class="small dim" style="margin-top:6px"></div></div>
+  <div class="card"><h2>Umgebung</h2>
+    <div class="grid2"><div><label>Temperatur (°C)</label><input type="number" id="k-t" value="${K.t}" inputmode="numeric"></div>
+    <div><label>Wind</label><select id="k-w"><option value="0" ${K.wind===0?'selected':''}>kein / leicht</option><option value="1" ${K.wind===1?'selected':''}>kalter Wind (+1 Klasse)</option><option value="2" ${K.wind===2?'selected':''}>Orkan (+2)</option></select></div></div>
+    <label class="check"><input type="checkbox" id="k-f" ${K.feucht?'checked':''}> Feuchte Kühle/Kälte (+1, nur bei kühl und kalt)</label>
+    <label class="check"><input type="checkbox" id="k-h" ${K.feuer?'checked':''}> Wärmendes Feuer (−1)</label></div>
+  <div class="card"><h2>Kälteschutz</h2>
+    <label>Körper</label><select id="k-b">${KOPT(K.body)}</select>
+    <label style="margin-top:8px">Hände &amp; Kopf (zählt einen Punkt günstiger)</label><select id="k-k">${KOPT(K.kopf)}</select>
+    <label style="margin-top:8px">Füße</label><select id="k-s">${KOPT(K.fuss)}</select>
+    <label style="margin-top:8px">Zustand der Kleidung</label><select id="k-z"><option value="trocken" ${K.zust==='trocken'?'selected':''}>trocken</option><option value="feucht" ${K.zust==='feucht'?'selected':''}>feucht (−1, außer Wolle)</option><option value="nass" ${K.zust==='nass'?'selected':''}>nass (kein Schutz, außer Wolle)</option><option value="wf" ${K.zust==='wf'?'selected':''}>Wolle feucht (±0)</option><option value="wn" ${K.zust==='wn'?'selected':''}>Wolle nass (−1)</option></select>
+    <label class="check"><input type="checkbox" id="k-sch" ${K.schlecht?'checked':''}> Pelz nur übergeworfen oder zerrissen (−1)</label>
+    <label class="check"><input type="checkbox" id="k-r" ${K.res?'checked':''}> Kälteresistenz (−1 Klasse)</label>
+    <label class="check"><input type="checkbox" id="k-a" ${K.akk?'checked':''}> Akklimatisierung Kälte (−1 Klasse)</label>
+    <div class="dim tiny" style="margin-top:6px">Der am schlechtesten geschützte Körperteil bestimmt den Schutz. Jeder Punkt senkt die Kälteklasse um 1.</div></div>
+  <div class="card"><h2>Kälteschaden</h2>
+    <div class="grid2"><div><label>erhaltene kTP</label><input type="number" id="k-ktp" inputmode="numeric" placeholder="1W6"></div><div><label>&nbsp;</label><button class="btn pri full" data-act="kgo">LeP abziehen</button></div></div>
+    <div class="row sp small" style="margin-top:8px"><span>kTP gesamt: <b class="bold">${S.ktp}</b> (Wundschwelle ${CHAR.wundschwelle})</span><span>Kältewunden: <b class="${S.kwunden?'bad':''}">${S.kwunden}</b></span></div>
+    ${S.ktp>CHAR.wundschwelle*(S.kwunden+1)-0&&S.ktp>CHAR.wundschwelle?`<div class="warn small" style="margin-top:6px">Kälteschaden über der Wundschwelle: Erfrierung (Kältewunde) möglich.</div>`:''}
+    ${S.kwunden>=2?'<div class="bad small" style="margin-top:6px">Zwei Kältewunden: Der Körperteil stirbt ab, wenn er nicht binnen einer Stunde magisch geheilt wird.</div>':''}
+    <div class="grid2" style="margin-top:8px"><button class="btn" data-act="kwund">Kältewunde eintragen</button><button class="btn" data-act="kreset">Aufgewärmt (zurücksetzen)</button></div>
+    <div class="dim tiny" style="margin-top:8px">Hilfe: Leib des Eises schützt vor Kälte und Eis, Heilkunde Krankheiten und Chonchinissalbe gegen Erfrierungen. Wunde: AT, PA, FK, GE −2, GS −1.</div></div>`;
+}
+function kaelteRead(){
+  K.t=parseInt($('k-t').value);if(isNaN(K.t))K.t=0;
+  K.wind=+$('k-w').value;K.feucht=$('k-f').checked;K.feuer=$('k-h').checked;
+  K.body=+$('k-b').value;K.kopf=+$('k-k').value;K.fuss=+$('k-s').value;K.zust=$('k-z').value;
+  K.schlecht=$('k-sch').checked;K.res=$('k-r').checked;K.akk=$('k-a').checked;
+}
+function kaelteCalc(){
+  kaelteRead();
+  const base=kClass(K.t);
+  let delta={trocken:0,feucht:-1,nass:null,wf:0,wn:-1}[K.zust];
+  const adj=p=>{let v=p;if(delta===null)v=0;else v+=delta;if(K.schlecht)v-=1;return Math.max(0,v);};
+  const pb=adj(K.body),pk=adj(K.kopf)+1,pf=adj(K.fuss);
+  const parts=[['Körper',pb],['Hände/Kopf',pk],['Füße',pf]];
+  parts.sort((a,b)=>a[1]-b[1]);
+  const prot=parts[0][1];
+  let cls=base+K.wind+((K.feucht&&(base===2||base===3))?1:0)-(K.feuer?1:0)-prot-(K.res?1:0)-(K.akk?1:0);
+  cls=clamp(cls,1,9);
+  $('k-class').innerHTML=`${cls} · ${KNAMEN[cls-1]}`;
+  $('k-class').style.color=cls<=1?'var(--green)':cls<=3?'var(--amber)':'var(--red)';
+  $('k-dmg').textContent=KDMG[cls-1];
+  $('k-brk').innerHTML=`Temperatur ${K.t} °C = Klasse ${base}${K.wind?` · Wind +${K.wind}`:''}${(K.feucht&&(base===2||base===3))?' · feucht +1':''}${K.feuer?' · Feuer −1':''} · Schutz −${prot} (schwächster Teil: ${parts[0][0]})${K.res?' · Resistenz −1':''}${K.akk?' · Akklimatisierung −1':''}`;
+}
+/* --- Marsch & Tagesstrecke --- */
+let M={zeit:1,art:1,wetter:0,last:0,rast:1,gel:1,wet:1,veh:30};
+const GEL=[['Reichsstraße',1.1],['Landstraße / offenes Grasland',1],['Karren- und Waldwege',0.8],['Lichter Wald',0.75],['Hügelland',0.75],['Geröllwüste',0.6],['Wald',0.5],['Sandwüste',0.5],['Gebirgspfade',0.3],['Dschungelpfade',0.2],['Dichter Wald',0.2],['Dschungel',0.1],['Sumpf',0.1]];
+const WET=[['gutes Wetter',1],['Nieselregen / Schwüle',0.9],['steife Brise',0.9],['Frost',0.9],['große Hitze',0.8],['heftiger Regen / dichter Nebel',0.5]];
+const VEH=[['Gruppe zu Fuß',30],['Gruppe zu Fuß, Eilmarsch',45],['Gruppe beritten',40],['Gruppe beritten, Eilritt',60],['Galeere (8 Std.)',70],['Galeere eilgerudert (12 Std.)',100],['Lastensegler (12 Std.)',120],['Schnellsegler (12 Std.)',140],['Schnellsegler (24 Std.)',250]];
+function marschHtml(){
+  const ko=CHAR.attr.KO,u=ueb();
+  return `<div class="card"><div class="row sp"><div><div class="lbl" style="margin:0">Erschöpfung</div><div class="mono" style="font-size:2rem;font-weight:700">${S.ers}<small class="dim" style="font-size:1rem"> / ${ko}</small></div></div>
+    <div style="text-align:right">${u?`<span class="tag r">Überanstrengung ${u}</span><div class="small warn">BE +${u}, KO-Proben +${u}</div>`:'<span class="tag g">keine Einbußen</span>'}${S.ers>=2*ko?'<div class="bad small">Zusammenbruch!</div>':''}</div></div>
+    <div class="bar"><i style="width:${clamp(S.ers/(2*ko)*100,0,100)}%;background:${u?'var(--red)':'var(--amber)'}"></i></div>
+    <div class="row"><button class="btn sm" data-act="mers" data-d="-1">−1</button><button class="btn sm" data-act="mers" data-d="1">+1</button><div class="dim tiny grow">Über KO = Überanstrengung. Bei Zusammenbruch (Erschöpfung bis 2×KO) ist Schluss.</div></div></div>
+  <div class="card"><h2>Marsch anrechnen</h2>
+    <div class="grid2"><div><label>Stunden</label><input type="number" id="m-h" value="${M.zeit}" inputmode="numeric"></div>
+    <div><label>Gangart</label><select id="m-a"><option value="1" ${M.art===1?'selected':''}>Marsch (+1/Std.)</option><option value="2" ${M.art===2?'selected':''}>Eilmarsch (+2/Std.)</option></select></div></div>
+    <div class="grid2" style="margin-top:8px"><div><label>widriges Wetter / Wind</label><select id="m-w"><option value="0">keins</option><option value="1" ${M.wetter===1?'selected':''}>+1/Std.</option><option value="2" ${M.wetter===2?'selected':''}>+2/Std.</option></select></div>
+    <div><label>Überladung</label><select id="m-l"><option value="0">keine</option><option value="1" ${M.last===1?'selected':''}>+1/Std.</option></select></div></div>
+    <button class="btn pri full" style="margin-top:8px" data-act="mgo">Erschöpfung hinzufügen</button>
+    <div class="dim tiny" style="margin-top:6px">Hoher Schnee ohne Schneeschuhe oder Ski ist kräftezehrend und kann feuchte Füße bringen.</div></div>
+  <div class="card"><h2>Rast &amp; Schlaf</h2>
+    <div class="grid2"><div><label>Stunden</label><input type="number" id="m-rh" value="${M.rast}" inputmode="numeric"></div>
+    <div><label>Art</label><select id="m-ra"><option value="r">Rast (−2 / −1 Überanstr.)</option><option value="s">Schlaf (−4 / −2)</option></select></div></div>
+    <button class="btn full" style="margin-top:8px" data-act="mrast">Erholen</button></div>
+  <div class="card"><h2>Tagesstrecke</h2>
+    <label>Fortbewegung</label><select id="m-v">${VEH.map(([n,v])=>`<option value="${v}" ${v===M.veh?'selected':''}>${n} (${v} Meilen)</option>`).join('')}</select>
+    <div class="grid2" style="margin-top:8px"><div><label>Gelände</label><select id="m-g">${GEL.map(([n,v])=>`<option value="${v}" ${v===M.gel?'selected':''}>${n} ×${v}</option>`).join('')}</select></div>
+    <div><label>Wetter</label><select id="m-we">${WET.map(([n,v])=>`<option value="${v}" ${v===M.wet?'selected':''}>${n} ×${v}</option>`).join('')}</select></div></div>
+    <div class="row sp" style="margin-top:10px"><div class="dim small">Tagesleistung</div><div id="m-res" class="bold mono" style="font-size:1.8rem"></div></div>
+    <div class="dim tiny">Meilen pro Tag. Eilmarsch ist nur etwa jeden zweiten Tag möglich. Die Werte gelten für Landgruppen, Schiffe werden vom Gelände nicht gebremst (Gelände auf Landstraße lassen).</div></div>`;
+}
+function marschCalc(){
+  const el=$('m-v');if(!el)return;
+  M.veh=+$('m-v').value;M.gel=+$('m-g').value;M.wet=+$('m-we').value;
+  $('m-res').textContent=(M.veh*M.gel*M.wet).toFixed(1).replace('.0','').replace('.',',')+' Meilen';
+}
+
+$('t-reise').addEventListener('change',e=>{
+  if(rSub==='kaelte')kaelteCalc();else if(rSub==='marsch'){if(e.target.id==='m-v'||e.target.id==='m-g'||e.target.id==='m-we')marschCalc();}
+  if(e.target.id==='v-ort'){S.ort=e.target.value;save();}
+});
+$('t-reise').addEventListener('input',e=>{if(rSub==='kaelte')kaelteCalc();});
+$('t-reise').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='rs'){rSub=b.dataset.s;renderReise();}
+  else if(a==='rk'){rKind=b.dataset.k;renderReise();}
+  else if(a==='lf'){rFilter=b.dataset.k;renderReise();}
+  else if(a==='ladd'){
+    const title=$('l-t').value.trim(),text=$('l-x').value.trim(),tag=num('l-d',S.tag);
+    if(!title&&!text){toast('Titel oder Text eingeben');return;}
+    S.eintraege.push({id:Date.now(),tag,kind:rKind,title,text});save();renderReise();toast('Eingetragen');
+  }
+  else if(a==='ldel'){if(confirm('Eintrag löschen?')){S.eintraege=S.eintraege.filter(x=>x.id!==+b.dataset.id);save();renderReise();}}
+  else if(a==='ledit'){const en=S.eintraege.find(x=>x.id===+b.dataset.id);const t=prompt('Text ändern:',en.text);if(t!==null){en.text=t;save();renderReise();}}
+  else if(a==='rtag'){S.tag=Math.max(1,S.tag+ +b.dataset.d);save();renderReise();}
+  else if(a==='rend'){S.tag++;S.rationen=Math.max(0,S.rationen-1);save();renderReise();toast('Tag '+S.tag);}
+  else if(a==='rv'){S[b.dataset.k]=Math.max(0,S[b.dataset.k]+ +b.dataset.d);save();renderReise();}
+  else if(a==='gpay'||a==='gget'){const amt=num('g-a',0);if(!amt){toast('Betrag eingeben');return;}const v=amt*WERT[$('g-w').value];
+    if(a==='gpay'&&v>geldK()){toast('Nicht genug Geld');return;}
+    setGeldK(geldK()+(a==='gget'?v:-v));save();renderReise();}
+  else if(a==='kgo'){kaelteRead();const n=num('k-ktp',0);if(!n){toast('kTP eingeben');return;}S.ktp+=n;S.lep=Math.max(0,S.lep-n);save();renderReise();toast('−'+n+' LeP durch Kälte');}
+  else if(a==='kwund'){S.kwunden++;S.wunden++;save();renderReise();}
+  else if(a==='kreset'){S.ktp=0;S.kwunden=0;save();renderReise();}
+  else if(a==='mers'){S.ers=Math.max(0,S.ers+ +b.dataset.d);save();renderReise();}
+  else if(a==='mgo'){const h=num('m-h',1);M.zeit=h;M.art=+$('m-a').value;M.wetter=+$('m-w').value;M.last=+$('m-l').value;S.ers+=h*(M.art+M.wetter+M.last);save();renderReise();toast('Erschöpfung '+S.ers);}
+  else if(a==='mrast'){const h=num('m-rh',1);M.rast=h;const schlaf=$('m-ra').value==='s';for(let i=0;i<h;i++){if(S.ers>CHAR.attr.KO)S.ers-=schlaf?2:1;else S.ers-=schlaf?4:2;S.ers=Math.max(0,S.ers);}save();renderReise();}
+});
+
+/* ---------- Sonderfertigkeiten ---------- */
+// [Name, Basis-AP, Voraussetzungen (SF), Hinweis, verbilligt?, Leit(L)?, gesperrt-Grund]
+const SFDB=[
+ ['Ausweichen II',200,['Ausweichen I','Aufmerksamkeit'],'+3 auf Ausweichen',1,1,''],
+ ['Ausweichen III',200,['Ausweichen II','Kampfreflexe (INI +4)'],'+3 auf Ausweichen (GE 15)',0,1,''],
+ ['Finte',200,[],'Ansage erschwert AT, die Hälfte erschwert die gegnerische Abwehr',1,1,''],
+ ['Gezielter Stich',100,['Finte'],'Dolche, Speere: AT +4 + ½ RS, ignoriert Rüstung, automatisch Wunde',0,0,''],
+ ['Wuchtschlag',200,[],'volle Ansage als TP (KK 12)',0,0,''],
+ ['Meisterparade',200,[],'Parade-Ansage, bei Erfolg nächste AT + Ansage (PA-Basis 8)',0,0,''],
+ ['Betäubungsschlag',200,['Finte','Wuchtschlag'],'stumpfer Schlag, TP(A)',0,0,''],
+ ['Ausfall',200,['Finte'],'Angriffsserie, Gegner muss zurückweichen (KO 12)',0,0,''],
+ ['Binden',200,['Meisterparade'],'gegnerische Waffe behindern (IN, GE 12)',0,0,''],
+ ['Entwaffnen',200,['Binden'],'AT +8, kein Schaden (KK 12)',0,0,''],
+ ['Gegenhalten',200,['Meisterparade'],'Gegenangriff in den Angriff hinein',0,0,'MU 15 nötig (hat 13)'],
+ ['Defensiver Kampfstil',100,['Meisterparade'],'zwei Paraden pro Runde ohne Malus (GE 12)',0,0,''],
+ ['Kampf im Wasser',100,[],'halbe Abzüge im Wasser (GE 12, Körperbeherrschung 7)',0,0,''],
+ ['Schnellziehen',200,[],'Waffe als freie Aktion ziehen (GE 12, FF 10)',0,0,''],
+ ['Rüstungsgewöhnung I',150,[],'BE −1 für eine Rüstung (KK 10)',0,0,''],
+ ['Linkhand',300,[],'Zweitwaffe, Schild (KK 10, GE 10)',0,0,''],
+];
+function sfCost(s){const base=s[1];return Math.round(base*(s[4]?0.5:s[5]?1:1.5));}
+function sfHas(n){return CHAR.sf['Kampf'].includes(n)||S.sfk.includes(n)||(n==='Kampfreflexe'&&CHAR.sf['Kampf'].some(x=>x.startsWith('Kampfreflexe')));}
+function sfHtml(){
+  const rows=SFDB.filter(s=>!sfHas(s[0])).map(s=>{
+    const miss=s[2].filter(r=>!sfHas(r));const cost=sfCost(s);
+    const lock=s[6]||(miss.length?'braucht: '+miss.join(', '):'');
+    const can=!lock&&S.ap>=cost;
+    return `<div class="card" style="padding:10px"><div class="row sp"><div class="grow"><b class="bold">${esc(s[0])}</b> ${s[4]?'<span class="tag g">verbilligt</span>':s[5]?'<span class="tag b">Leit</span>':'<span class="tag a">×1,5 Weltsicht</span>'}<div class="small dim">${esc(s[3])}</div>${lock?`<div class="small bad">${esc(lock)}</div>`:''}</div>
+      <div style="text-align:right"><div class="bold mono" style="font-size:1.2rem">${cost} AP</div><button class="btn sm ${can?'pri':''}" data-act="sfbuy" data-n="${esc(s[0])}" ${can?'':'disabled'}>Lernen</button></div></div></div>`;
+  }).join('');
+  return `<div class="card"><div class="row sp"><div class="lbl" style="margin:0">AP-Guthaben</div><div class="mono bold" style="font-size:1.6rem;color:var(--gold2)">${S.ap}</div></div>
+    <div class="dim tiny" style="margin-top:6px">Nicht-Leit-Sonderfertigkeiten kosten wegen der Elfischen Weltsicht 150 %, Verbilligte 50 %. Lehrmeister oder Salasandra sind Meisterentscheid. Gelernte stehen unter Charakter &amp; Sicherung und schalten Manöver im Nahkampf frei.</div></div>`+(rows||'<div class="dim card">Alle hier gelisteten Sonderfertigkeiten sind gelernt.</div>');
+}
+
+function cheatHtml(){return `    <details><summary>Talentprobe</summary><div class="small">3W20, jeweils gegen die Eigenschaft. Jeder Punkt über dem Wert kostet 1 TaP. Bleibt TaP ≥ 0 übrig, ist die Probe geglückt (mind. 1 TaP*). Erschwernis senkt den TaW; reicht er nicht, sinken die Eigenschaften. Doppel-1 = Erfolg, Doppel-20 = Patzer; dreifach = spektakulär. Negative TaW wirken wie Erschwernis.</div></details>
+    <details><summary>Zauberprobe</summary><div class="small">Wie Talentprobe mit ZfW. ZfP* sind die übrigen Punkte. Misserfolg: halbe AsP. Erschwernis erst gegen den ZfW, Rest gegen die Eigenschaften.</div></details>
+    <details><summary>Fernkampf-Modifikatoren</summary><table class="t">
+      <tr><th colspan="2">Zielgröße</th></tr><tr><td>winzig / sehr klein / klein</td><td>+8 / +6 / +4</td></tr><tr><td>mittel / groß / sehr groß</td><td>+2 / ±0 / −2</td></tr>
+      <tr><th colspan="2">Deckung &amp; Sicht (Größenklassen kleiner, je +2)</th></tr><tr><td>halbe / ¾ Deckung</td><td>+2 / +4</td></tr><tr><td>Dämmerung, Dunst</td><td>+2</td></tr><tr><td>Mondlicht, Nebel</td><td>+4</td></tr><tr><td>Sternenlicht</td><td>+6</td></tr><tr><td>Finsternis / unsichtbar</td><td>+8</td></tr>
+      <tr><th colspan="2">Bewegung</th></tr><tr><td>stillstehend / unbeweglich</td><td>−2 / −4</td></tr><tr><td>bewegt sich / Ausweichen</td><td>+2 / +4</td></tr>
+      <tr><th colspan="2">Entfernung</th></tr><tr><td>sehr nah / nah / mittel</td><td>−2 / ±0 / +4</td></tr><tr><td>weit / extrem weit</td><td>+8 / +12</td></tr>
+      <tr><th colspan="2">Weitere</th></tr><tr><td>Schnellschuss (Scharfschütze)</td><td>+2 (+1)</td></tr><tr><td>zweiter Schuss / Wurf</td><td>+4 / +2</td></tr></table></details>
+    <details><summary>Wunden</summary><div class="small">Schaden (nach RS) ≥ Wundschwelle (${CHAR.wundschwelle}) = Wunde. Je Wunde AT, PA, GE, INI −2 und GS −1. Bei Pfeilen: Wunde bei mehr als KO/2 − 2 SP. LeP ≤ 5: kampfunfähig, ≤ 0: Lebensgefahr.</div></details>
+    <details><summary>Elfische Weltsicht</summary><div class="small">Alle Talente und Zauber, die keine Leittalente/Leitzauber sind, werden eine Spalte teurer gesteigert. Salasandra mit der Sippe hebt das auf (und senkt zusätzlich um eine Spalte).</div></details>
+
+    <details><summary>Nahkampf-Manöver (Kurzfassung)</summary><table class="t">
+      <tr><td>Wuchtschlag</td><td>AT −Ansage, TP + ½ Ansage (volle mit SF)</td></tr>
+      <tr><td>Finte</td><td>AT −Ansage, gegnerische Abwehr −½ Ansage</td></tr>
+      <tr><td>Gezielter Stich (SF)</td><td>AT +4 +½ RS, Rüstung ignoriert, +Wunde</td></tr>
+      <tr><td>Entwaffnen (SF)</td><td>AT +8, kein Schaden</td></tr>
+      <tr><td>Meisterparade (SF)</td><td>PA −Ansage, nächste AT +Ansage</td></tr>
+      <tr><td>Stumpfer Schlag</td><td>AT +2 / +4 / +8 je nach Waffe, TP(A)</td></tr>
+      <tr><td>Ansage allgemein</td><td>höchstens TaW der Waffe und AT/PA-Wert; Misserfolg: alle Proben bis zur nächsten Aktion um die Ansage erschwert</td></tr></table></details>
+    <details><summary>Kälte</summary><table class="t">
+      <tr><th>Klasse</th><th>Temperatur</th><th>Schaden</th></tr>
+      <tr><td>2 kühl</td><td>10 bis 0 °C</td><td>1W6 kTP / 6 Std.</td></tr><tr><td>3 kalt</td><td>0 bis −10</td><td>1W6 / Std.</td></tr>
+      <tr><td>4 frostig</td><td>−10 bis −20</td><td>1W6 / Viertelstd.</td></tr><tr><td>5 eisig</td><td>−20 bis −35</td><td>1W6 / SR</td></tr>
+      <tr><td>6 firunsfrostig</td><td>−35 bis −50</td><td>1W6 / Min.</td></tr><tr><td>7 grimmfrostig</td><td>−50 bis −100</td><td>1W6 / halbe Min.</td></tr>
+      <tr><td colspan="3" class="dim">Wind +1, Orkan +2, Feuchte +1, Feuer −1; jeder Punkt Kälteschutz −1; Kälteresistenz −1.</td></tr></table></details>
+    <details><summary>Erschöpfung</summary><div class="small">Bis KO Punkte ohne Folgen, darüber Überanstrengung: je Punkt BE +1 und KO-Proben +1. Marsch +1/Std., Eilmarsch +2/Std., widriges Wetter bis +2/Std., Überladung +1/Std.</div></details>
+`;}
+
 /* ================================================================ START */
-showTab(['status','proben','zauber','kampf','steigern','info'].includes(S.tab)?S.tab:'status');
+showTab(['status','proben','zauber','kampf','reise','regeln','steigern','wuerfe','info'].includes(S.tab)?S.tab:'status');
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 </script>
 </body>
