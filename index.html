@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16110a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Shaelyra · Spielbegleiter</title>
+<style>
+:root{
+  --bg:#16110a;--surface:#211a0e;--card:#2b2011;--card2:#33271a;--border:#5e4721;
+  --gold:#c9952a;--gold2:#e8b84b;--text:#ebe0cb;--dim:#a38a63;
+  --green:#7ab56a;--red:#d0705f;--blue:#7aa6dc;--amber:#e0a43a;--violet:#a18ad8;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.45;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom));min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:calc(8px + env(safe-area-inset-top)) 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+header h1{font-size:1.05rem;color:var(--gold2);font-weight:600;letter-spacing:.02em}
+header .sub{font-size:.75rem;color:var(--dim)}
+.pill{background:var(--card);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:.78rem;color:var(--gold2);white-space:nowrap}
+main{max-width:720px;margin:0 auto;padding:12px 12px 20px}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:12px;position:relative}
+.card h2,.lbl{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;font-weight:600}
+.card h3{font-size:.95rem;color:var(--gold2);margin:4px 0 6px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row.sp{justify-content:space-between}
+.grow{flex:1;min-width:0}
+.dim{color:var(--dim)} .small{font-size:.8rem} .tiny{font-size:.72rem}
+.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}.info{color:var(--blue)}
+.btn{background:var(--card2);border:1px solid var(--border);border-radius:8px;min-height:44px;min-width:44px;padding:8px 12px;cursor:pointer;color:var(--text)}
+.btn:active{background:#4a3920}
+.btn.pri{background:#6b4f12;border-color:var(--gold);color:#fff4d6;font-weight:600}
+.btn.dng{border-color:#8a3a30;color:var(--red)}
+.btn.sm{min-height:36px;padding:4px 10px;font-size:.88rem}
+.btn.full{width:100%}
+input[type=number],input[type=text],select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:9px 10px;min-height:44px;width:100%;color:var(--text)}
+input[type=number]{text-align:center}
+textarea{min-height:110px;resize:vertical}
+label{display:block;font-size:.82rem;color:var(--dim);margin-bottom:3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:340px){.grid3{grid-template-columns:1fr 1fr}}
+.check{display:flex;gap:10px;align-items:center;min-height:40px;font-size:.92rem;color:var(--text);margin:0}
+.check input{width:22px;height:22px;flex:none;accent-color:var(--gold)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:6px 13px;min-height:36px;color:var(--dim)}
+.chip.on{background:#6b4f12;border-color:var(--gold);color:#fff4d6}
+/* meters */
+.meter .val{font-size:2rem;font-weight:700;line-height:1;color:var(--text);min-width:92px;text-align:center}
+.meter .val small{font-size:1rem;color:var(--dim);font-weight:400}
+.bar{height:10px;border-radius:6px;background:#120d06;border:1px solid #3d2e14;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--green);transition:width .2s,background .2s}
+.tag{display:inline-block;border-radius:6px;padding:2px 8px;font-size:.78rem;border:1px solid var(--border);margin:2px 3px 2px 0;background:var(--surface)}
+.tag.g{border-color:#3f6a33;color:var(--green)}.tag.r{border-color:#8a3a30;color:var(--red)}.tag.a{border-color:#8a6a1f;color:var(--amber)}.tag.b{border-color:#3a5f8a;color:var(--blue)}
+.list button.item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin-bottom:6px;min-height:48px;text-align:left}
+.list button.item:active{background:#4a3920}
+.list .nm{font-size:1rem}.list .at{font-size:.74rem;color:var(--dim)}
+.list .tw{font-size:1.15rem;color:var(--gold2);font-weight:700;min-width:34px;text-align:right}
+/* sheet */
+#sheet{position:fixed;inset:0;z-index:50;display:none;background:rgba(0,0,0,.6)}
+#sheet.on{display:block}
+#sheet .in{position:absolute;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:var(--surface);border-top:2px solid var(--gold);
+  border-radius:16px 16px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+#sheet .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+#sheet .hd h2{font-size:1.1rem;color:var(--gold2);text-transform:none;letter-spacing:0;margin:0}
+.res{border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-top:10px;background:var(--card)}
+.res .big{font-size:1.5rem;font-weight:700}
+.res.ok{border-color:#3f6a33}.res.no{border-color:#8a3a30}
+.res .t{font-size:.95rem;margin-top:6px}
+hr{border:0;border-top:1px solid var(--border);margin:8px 0;opacity:.6}
+.bold{font-weight:700;color:var(--gold2)}
+.pfeil-box,.var-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px;font-size:.88rem}
+/* tabbar */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);display:flex;
+  padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;color:var(--dim);padding:8px 2px 7px;min-height:56px;font-size:.7rem;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button .ic{font-size:1.25rem;line-height:1}
+nav button.on{color:var(--gold2);background:linear-gradient(0deg,rgba(201,149,42,.18),transparent)}
+table.t{width:100%;border-collapse:collapse;font-size:.88rem}
+table.t td,table.t th{padding:5px 6px;border-bottom:1px solid #43321a;text-align:left;vertical-align:top}
+table.t th{color:var(--gold);font-weight:600;font-size:.76rem}
+details{margin-bottom:6px}
+details summary{cursor:pointer;min-height:40px;display:flex;align-items:center;color:var(--gold2);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));background:#6b4f12;border:1px solid var(--gold);
+  color:#fff4d6;padding:9px 16px;border-radius:99px;z-index:80;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.eff{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #43321a}
+.dice-lbl{font-size:.8rem;color:var(--dim);text-align:center;margin-bottom:2px}
+.stepper{display:flex;gap:6px;align-items:center}
+.stepper input{text-align:center}
+.mono{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Shaelyra Firnwind</h1><div class="sub">Firnelfische Kämpferin · Phileasson-Saga</div></div>
+  <div class="pill" id="hdr-ap"></div>
+</header>
+<main>
+
+<!-- ============ STATUS ============ -->
+<section class="tab on" id="t-status"></section>
+<!-- ============ PROBEN ============ -->
+<section class="tab" id="t-proben"></section>
+<!-- ============ ZAUBER ============ -->
+<section class="tab" id="t-zauber"></section>
+<!-- ============ KAMPF ============ -->
+<section class="tab" id="t-kampf"></section>
+<!-- ============ STEIGERN ============ -->
+<section class="tab" id="t-steigern"></section>
+<!-- ============ INFO ============ -->
+<section class="tab" id="t-info"></section>
+
+</main>
+<nav id="nav">
+  <button data-tab="status" class="on"><span class="ic">♥</span>Status</button>
+  <button data-tab="proben"><span class="ic">⚄</span>Proben</button>
+  <button data-tab="zauber"><span class="ic">✦</span>Zauber</button>
+  <button data-tab="kampf"><span class="ic">➶</span>Kampf</button>
+  <button data-tab="steigern"><span class="ic">▲</span>Steigern</button>
+  <button data-tab="info"><span class="ic">☰</span>Info</button>
+</nav>
+<div id="sheet"><div class="in" id="sheet-in"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   DATEN  (Stand: nach Steigerung zum Phileasson-Abenteuer, aus Firnelf.xlsx)
+   ================================================================ */
+const CHAR = {
+  name: 'Shaelyra Firnwind',
+  attr: {MU:13,KL:11,IN:12,CH:9,FF:14,GE:15,KO:13,KK:12},
+  attrNames: {MU:'Mut',KL:'Klugheit',IN:'Intuition',CH:'Charisma',FF:'Fingerfertigkeit',GE:'Gewandtheit',KO:'Konstitution',KK:'Körperkraft'},
+  max: {lep:26, aup:38, asp:29},
+  mr: 6, gs: 7, wundschwelle: 7, iniBasis: 15, atBasis: 8, paBasis: 8, fkBasis: 10, be: 1,
+  ap0: 6,
+  // [Name, Gruppe, Probe, TaW, BE-Modus, Steigerungsspalte (inkl. Weltsicht), Weltsicht-Aufschlag?]
+  talente: [
+    ['Athletik','Körper',['GE','KO','KK'],7,'x2','D',0],
+    ['Klettern','Körper',['MU','GE','KK'],6,'x2','D',0],
+    ['Körperbeherrschung','Körper',['MU','IN','GE'],7,'x2','D',0],
+    ['Schleichen','Körper',['MU','IN','GE'],4,'1','D',0],
+    ['Schwimmen','Körper',['GE','KO','KK'],6,'x2','E',1],
+    ['Selbstbeherrschung','Körper',['MU','KO','KK'],7,null,'D',0],
+    ['Sich Verstecken','Körper',['MU','IN','GE'],6,'-2','D',0],
+    ['Singen','Körper',['IN','CH','CH'],2,'-3','D',0],
+    ['Sinnenschärfe','Körper',['KL','IN','IN'],9,null,'D',0],
+    ['Skifahren','Körper',['GE','GE','KO'],3,'-2','E',1],
+    ['Tanzen','Körper',['CH','GE','GE'],0,'x2','D',0],
+    ['Zechen','Körper',['IN','KO','KK'],-2,null,'F',1],
+    ['Etikette','Gesellschaft',['KL','IN','CH'],2,null,'C',1],
+    ['Gassenwissen','Gesellschaft',['KL','IN','CH'],-2,null,'C',1],
+    ['Menschenkenntnis','Gesellschaft',['KL','IN','CH'],0,null,'C',1],
+    ['Überreden','Gesellschaft',['MU','IN','CH'],0,null,'C',1],
+    ['Fährtensuchen','Natur',['KL','IN','KO'],8,null,'C',1],
+    ['Fischen/Angeln','Natur',['IN','FF','KK'],2,null,'B',0],
+    ['Orientierung','Natur',['KL','IN','IN'],8,null,'B',0],
+    ['Wettervorhersage','Natur',['KL','IN','IN'],6,null,'B',0],
+    ['Wildnisleben','Natur',['IN','GE','KO'],7,null,'B',0],
+    ['Götter/Kulte','Wissen',['KL','KL','IN'],4,null,'C',1],
+    ['Kriegskunst','Wissen',['MU','KL','CH'],2,null,'B',0],
+    ['Magiekunde','Wissen',['KL','KL','IN'],5,null,'C',1],
+    ['Rechnen','Wissen',['KL','KL','IN'],0,null,'C',1],
+    ['Rechtskunde','Wissen',['KL','KL','IN'],-2,null,'C',1],
+    ['Sagen/Legenden','Wissen',['KL','IN','CH'],3,null,'C',1],
+    ['Sternkunde','Wissen',['KL','KL','IN'],6,null,'C',1],
+    ['Tierkunde','Wissen',['MU','KL','IN'],2,null,'C',1],
+    ['Abrichten','Handwerk',['MU','IN','CH'],0,null,'B',0],
+    ['Boote Fahren','Handwerk',['GE','KO','KK'],8,null,'C',1],
+    ['Feuersteinbearbeitung','Handwerk',['KL','FF','FF'],3,null,'B',0],
+    ['Heilkunde Gift','Handwerk',['MU','KL','IN'],4,null,'B',0],
+    ['Heilkunde Wunden','Handwerk',['KL','CH','FF'],9,null,'B',0],
+    ['Holzbearbeitung','Handwerk',['KL','FF','KK'],3,null,'C',1],
+    ['Kochen','Handwerk',['KL','IN','FF'],0,null,'C',1],
+    ['Lederarbeiten','Handwerk',['KL','FF','FF'],4,null,'C',1],
+    ['Malen/Zeichnen','Handwerk',['KL','IN','FF'],0,null,'B',0],
+    ['Musizieren','Handwerk',['IN','CH','FF'],7,null,'B',0],
+    ['Schneidern','Handwerk',['KL','FF','FF'],3,null,'C',1],
+    ['Seefahrt','Handwerk',['FF','GE','KK'],3,null,'C',1],
+    ['Garethi','Sprachen',['KL','IN','CH'],6,null,'A',1],
+    ['Isdira (Muttersprache)','Sprachen',['KL','IN','CH'],9,null,'A',0],
+    ['Gefahreninstinkt (Gabe)','Eigene',['KL','IN','IN'],3,null,'F',0],
+    ['Wache halten','Eigene',['MU','IN','KO'],8,null,'-',0],
+    ['Ansitzjagd Bogen','Eigene',['MU','IN','GE'],4,null,'-',0],
+    ['Pirschjagd Wurfmesser','Eigene',['MU','IN','GE'],0,null,'-',0],
+  ],
+  // Kampftalente für den Steigerungsrechner
+  kampftalente: [
+    ['Bogen',12,'E',0],['Speere',9,'D',0],['Dolche',5,'E',1],['Raufen',2,'C',0],
+  ],
+  // [Schlüssel, ZfW, Steigerungsspalte, Weltsicht-Aufschlag?]
+  zauber: [
+    ['adlerauge',10,'A',0],['adlerschwinge',10,'C',0],['armatrutz',11,'A',0],['balsam',10,'B',0],
+    ['pe',9,'B',0],['ph',9,'B',0],['firnlauf',5,'D',0],
+    ['chamaelioni',7,'C',0],['juckreiz',10,'C',1],['spinnenlauf',7,'D',1],
+  ],
+  nahkampf: [
+    {n:'Jagdspieß (Speere)',at:16,pa:8,tp:'1W+6',ini:-1,wm:'0 / -1',bf:3,note:'DK S · 2. Hand unmöglich'},
+    {n:'Jagdmesser (Dolche)',at:12,pa:7,tp:'1W+2',ini:-1,wm:'0 / -2',bf:3,note:'DK H'},
+    {n:'Tritt/Kopfstoß (Raufen)',at:9,pa:6,tp:'1W+0 (A)',ini:-1,wm:'–',bf:'–',note:'TP(A): Ausdauer, Hälfte auch LeP'},
+    {n:'Raufen',at:10,pa:8,tp:'1W+0 (A)',ini:0,wm:'–',bf:'–',note:''},
+    {n:'Ringen',at:8,pa:8,tp:'1W+0 (A)',ini:0,wm:'–',bf:'–',note:''},
+  ],
+  bogen: {n:'Elfenbogen', fk:24, tpDice:6, tpPlus:5, ranges:[10,25,50,100,200], rangeTP:[3,2,1,1,0], laden:2},
+  falke: {n:'Sir Flatterich III (Blaufalke)', lep:10, aup:90, rs:1, mr:2, at:'5 / 15', pa:'4 / 7', tp:'1W+1', gs:'1 / 30', ini:'—'},
+  vorteile: ['Altersresistenz','Dämmerungssicht','Kälteresistenz','Richtungssinn','Resistenz gegen Krankheiten','Vollzauberer','Wohlklang','Zweistimmiger Gesang','Entfernungssinn','Gefahreninstinkt','Herausragender Sinn Sehen'],
+  nachteile: ['Hitzeempfindlich','Elfische Weltsicht','Nahrungsrestriktion (Milchprodukte)','Wahrer Name','Artefaktgebunden','Arroganz 5','Neugier 7','Prinzipientreue 5 (Bewahrung der Eiswüsten)','Schulden 700 D','Sensibler Geruchssinn 6','Vorurteile 6 (Zwerge)','Weltfremd 6 (Adelsherrschaft)'],
+  sf: {
+    'Kampf':['Aufmerksamkeit','Kampfreflexe (INI +4)','Ausweichen I','Scharfschütze (Bogen)','Schnellladen (Bogen)'],
+    'Magie':['Große Meditation','Salasandra','Regeneration I','Konzentrationsstärke','Repräsentation Elfen'],
+    'Allgemein':['Eiskundig','Kulturkunde (Firnelfen)'],
+  },
+  ausruestung: ['Elfenbogen (Eis-Kristall?) mit Pfeilen','Jagdspieß','Jagdmesser','Pelzweste, hohe Stiefel','Wolldecke','Wasserschlauch 3,75 Maß','Kletterseil 10 Schritt','Sturmhaar-Harfe','Verbandszeug','schwarzes Amulett'],
+  spezEntfernung: 'Elfenbogen: 10 / 25 / 50 / 100 / 200 Schritt',
+};
+// SE (Spezielle Erfahrungen), Stand Excel
+const SE0 = {'Speere':10,'Orientierung':0,'Balsam':0,'Spinnenlauf':8}; // nur Dokumentation, wird unten gebraucht
+
+/* Zaubertexte aus dem früheren Zauberprobe-Tool, Firnlauf neu */
+const SP={
+adlerauge:{
+    n:"Adlerauge Luchsenohr",a:["KL","IN","FF"],c:4,mr:false,ex:false,pfeil:false,
+    info:"Probe: KL/IN/FF · Kosten: 4 AsP · Selbst · 1 SR (A) · Komplexität B · Merkmale: Hellsicht, Eigenschaften · Repräsentation: Elf 7; Ach, Dru, Geo, Hex, Mag je 3 · LC S.14",
+    w(z,_){
+      if(z===null)return"Die Probe ist misslungen – der Zauber wirkt nicht.";
+      return`Alle Sinnenschärfe-Proben um <span class="bold">${z} Punkte</span> erleichtert. Kann haarfeine Details ertasten, Geräusche auf Dutzende Schritt wahrnehmen, Gerüche auf 100 Schritt und Gesichter auf eine Meile erkennen (wenn Sinnenschärfe-Probe gelingt).<br><br><span class="bold">Achtung:</span> Plötzlicher Lärm, grelles Licht oder übler Geruch → Selbstbeherrschungs-Probe, sonst W20 Sekunden desorientiert.<br><br><span class="bold">Wirkungsdauer:</span> 1 Spielrunde Grunddauer · Aufrechterhalten: 4 AsP pro weitere SR`;
+    }
+  },
+adlerschwinge:{
+    n:"Adlerschwinge (Blaufalke)",a:["MU","IN","GE"],c:4,mr:false,ex:true,xl:"Laufende AsP (für Dauer als Blaufalke)",pfeil:false,
+    info:"Probe: MU/IN/GE · Kosten: 4 AsP + 3 AsP/SR (Blaufalke) · Selbst · je nach AsP · Komplexität B · LC S.15",
+    w(z,asp){
+      if(z===null)return"Die Probe ist misslungen – die Verwandlung gelingt nicht.";
+      const sr=Math.floor((asp||0)/3);
+      return`Verwandlung in das erlernte Tier (hier: Blaufalke) gelingt. Der Zaubernde erhält Gestalt, körperliche Fähigkeiten, Wahrnehmung und Lebensenergie des Tieres. Körperwerte max. doppelter ZfW. Kein Zaubern in Tiergestalt, keine vorzeitige Rückverwandlung.<br><br><span class="bold">Kosten:</span> 4 AsP Verwandlung + laufende AsP (Blaufalke: 3 AsP/SR)<br><span class="bold">Dauer mit ${asp||0} weiteren AsP:</span> ${asp>0?`ca. ${sr} Spielrunde(n)`:"Je nach AsP-Einsatz"}`;
+    }
+  },
+armatrutz:{
+    n:"Armatrutz",a:["IN","GE","KO"],c:0,mr:false,ex:true,xl:"Gewünschter RS-Zuwachs",pfeil:false,
+    info:"Probe: IN/GE/KO · Kosten: (RS-Zuwachs)² − ZfP*/2, mind. 4 AsP · Selbst · max. 1 SR (A) · Komplexität B · Merkmale: Eigenschaften, Elementar (Erz) · LC S.27",
+    w(z,asp){
+      if(z===null)return"Die Probe ist misslungen – der Schutz entsteht nicht.";
+      const rs=asp||0;
+      const zfw=parseInt(document.getElementById('zfw').value)||10;
+      const k=Math.max(4,rs*rs-Math.floor(z/2));
+      return`RS-Zuwachs: <span class="bold">+${rs}</span> · Max. möglicher Zuwachs: ZfW/2 = <span class="bold">${Math.floor(zfw/2)}</span><br><br><span class="bold">Kosten:</span> ${rs}² − ZfP*/2 = ${rs*rs} − ${Math.floor(z/2)} = <span class="bold">${k} AsP</span> (mindestens 4 AsP)<br><br>Keine Behinderung. Wirkt gegen alle materiellen Angriffe und Dämonenattacken mit materieller Komponente. Wirkt <em>nicht</em> gegen reine Zauberschäden (z.B. FULMINICTUS).`;
+    }
+  },
+balsam:{
+    n:"Balsam Salabunde",a:["KL","IN","CH"],c:0,mr:false,ex:true,xl:"Eingesetzte AsP (= geheilte LeP)",pfeil:false,
+    info:"Probe: KL/IN/CH · Kosten: 1 AsP pro LeP, mind. 5 AsP · Selbst/Berührung · Augenblicklich · Komplexität C · Merkmale: Heilung, Form · LC S.36",
+    w(z,asp){
+      if(z===null)return"Die Probe ist misslungen – der Zauber wirkt nicht.";
+      const zfw=parseInt(document.getElementById('zfw').value)||10;
+      const max=zfw*2;
+      const lep=Math.min(asp||0,max);
+      return`Heilung von <span class="bold">${lep} LeP</span> (Maximum ZfW×2 = ${max} LeP). Wunden, Krankheiten und Vergiftungen werden geheilt – aber nicht gestoppt.<br><br><span class="bold">Optionalregel:</span> Je 7 geheilte LeP = 1 Wunde vollständig geheilt.<br><span class="bold">Kosten:</span> ${Math.max(5,asp||0)} AsP`;
+    }
+  },
+juckreiz:{
+    n:"Juckreiz, Dämlicher!",a:["MU","IN","CH"],c:7,mr:true,ex:false,pfeil:false,
+    info:"Probe: MU/IN/CH (+MR) · Kosten: 7 AsP (Sch: 4 AsP) · Reichweite: ZfW Schritt Radius · Wirkungsdauer: ZfP*/2 SR · Komplexität B · Merkmale: Einfluss · Repräsentation: Sch 3",
+    w(z,_){
+      if(z===null)return"Die Probe ist misslungen – der Zauber wirkt nicht.";
+      const r=Math.max(1,Math.floor(z/2));
+      return`Dämlichste Person im Radius (geringste KL+IN) wird <span class="bold">${r} Spielrunde(n)</span> von heftigem Juckreiz befallen.<br><br>Bei jeder Handlung: SB-Probe (erschwert um ${z}) oder Ablenkung.<br>KL, IN, CH und INI-Basis sinken um −${z}.`;
+    }
+  },
+pe:{
+    n:"Pfeil des Eises",a:["KL","IN","CH"],c:8,mr:false,ex:false,pfeil:true,
+    info:"Probe: KL/IN/CH · Kosten: 8 AsP · Berührung · ZfP*×10 KR · Komplexität C · Elementar (Eis), Objekt · Repräsentation: Elf 3 (Firnelfen) · LC S.207",
+    w(z,_){
+      if(z===null)return"Die Probe ist misslungen – der Pfeil wird nicht verzaubert.";
+      return`<span class="bold">Wirkungsdauer: ${z*10} KR</span><br><br>Halbe Reichweite. Bei Treffer: normaler Schaden + entzieht <span class="bold">${Math.floor(z/2)} AuP/KR</span>.<br>Sinkt AU auf 0: 1 SP/KR bis Pfeil entfernt. Kälteempfindliche: doppelte Wirkung. Kälteresistente: halbiert.`;
+    }
+  },
+ph:{
+    n:"Pfeil des Humus",a:["KL","IN","CH"],c:8,mr:false,ex:false,pfeil:true,
+    info:"Probe: KL/IN/CH · Kosten: 8 AsP · Berührung · ZfP*×10 KR · Komplexität C · Elementar (Humus), Objekt · Repräsentation: Elf 4, Ach 3 · LC S.207",
+    w(z,_){
+      if(z===null)return"Die Probe ist misslungen – der Pfeil wird nicht verzaubert.";
+      return`<span class="bold">Wirkungsdauer: ${z*10} KR</span><br><br>Gegen Mauern/Felsen (halbe Reichweite): Ranken überwachsen Wand → kletterbar, nach Ablauf Staub.<br>Gegen Lebewesen: halbe TP + von Ranken umschlossen (Entfesseln-Probe um TP erschwert, 1×/KR; jede Fehlprobe +1).`;
+    }
+  },
+spinnenlauf:{
+    n:"Spinnenlauf",a:["IN","GE","KK"],c:7,mr:false,ex:true,xl:"Weitere AsP (für Wirkungsdauer)",pfeil:false,
+    info:"Probe: IN/GE/KK · Kosten: 7 AsP + 2 AsP/SR · Selbst/Berührung · je nach AsP (A) · Komplexität C · Merkmale: Eigenschaften · Repräsentation: Hex 4, Ach 3, Elf 2 · LC S.246",
+    w(z,asp){
+      if(z===null)return"Die Probe ist misslungen – der Zauber wirkt nicht.";
+      const sr=Math.floor((asp||0)/2);
+      return`Klettern wie eine Spinne an glatten Wänden, Überhängen und Decken – keine Klettern-Proben nötig.<br><span class="bold">Kosten:</span> 7 AsP + 2 AsP/SR · ${asp>0?`${asp} weitere AsP → ca. ${sr} SR`:""}`;
+    }
+  },
+chamaelioni:{
+    n:"Chamaelioni Mimikry",a:["IN","CH","GE"],c:4,mr:false,ex:false,pfeil:false,
+    info:"Probe: IN/CH/GE · Kosten: 4 AsP · Selbst · ZfP*×10 KR (A) · Komplexität C · Merkmale: Illusion · Repräsentation: Elf 5; Hex, Mag je 3 · LC S.53",
+    w(z,_){
+      if(z===null)return"Die Probe ist misslungen – die Elfe tarnt sich nicht.";
+      return`Tarnung für <span class="bold">${z*10} KR</span>.<br><br>Regungslos: Sinnenschärfe-Probe um ZfP*+7 = <span class="bold">${z+7}</span> erschwert.<br>Bewegt bis 0,5 Schritt/Aktion: nur um ZfP*/2 = ${Math.floor(z/2)} erschwert.<br>Schnellere Bewegung: bricht zusammen.`;
+    }
+  },
+firnlauf:{
+n:"Firnlauf",a:["MU","KL","GE"],c:5,mr:false,ex:true,xl:"Weitere AsP (2 AsP je Spielrunde)",pfeil:false,
+info:"Probe: MU/KL/GE · Kosten: 5 AsP + 2 AsP/SR · Zauberdauer 6 Aktionen · Selbst · je nach AsP (A) · Komplexität D · Merkmale: Elementar (Eis), Eigenschaften · Repräsentation: Elf 6 (Firnelfen), andere Elfen 2, Mag 2 · LC S.86",
+w(z,asp){
+if(z===null)return"Die Probe ist misslungen – der Zauber wirkt nicht.";
+const sr=Math.floor((asp||0)/2);
+return`Sicheres Bewegen über Eis und Schnee: kein Einsinken in Tiefschnee, Gleichgewicht auf Eisschollen, kein Einbrechen in dünnes Eis. Bis zu 25 Stein Ausrüstung.<br><br>Auf Körperliche Talente und Kampffertigkeiten auf Eis oder beim Klettern an Eiswänden werden <span class="bold">${z} ZfP*</span> von der Erschwernis abgezogen (kein Bonus). Bei Sturz auf Eis: ${z} Punkte Schaden weniger.<br>Kein Schutz vor Erfrieren oder Hagel; auf dämonisch pervertiertem Eis um 7 erschwert.<br><br><span class="bold">Varianten:</span> Eisspinne (+3): ZfP* auch als Erleichterung, Klettern an Eiswänden und Überhängen. Verankerung (ab ZfW 7): für 1 AsP fester Stand auf Eis.<br><br><span class="bold">Kosten:</span> 5 AsP + 2 AsP/SR${asp>0?` · ${asp} weitere AsP → ca. ${sr} SR`:""}`;
+}
+}
+};
+
+/* ================================================================
+   STATE
+   ================================================================ */
+const KEY='shaelyra.v1';
+const DEFAULT = ()=>({
+  lep:CHAR.max.lep, aup:CHAR.max.aup, asp:CHAR.max.asp, wunden:0,
+  fLep:CHAR.falke.lep, fAup:CHAR.falke.aup, kr:0, effekte:[],
+  be:CHAR.be, rs:1, ap:CHAR.ap0, taw:{}, zfw:{}, se:{'Speere':true,'spinnenlauf':true}, log:[], notes:'', phil:''
+});
+let S;
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j)return Object.assign(DEFAULT(),j);}catch(e){}return DEFAULT();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+S=load();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1900);}
+const num=(id,def=0)=>{const e=$(id);if(!e)return def;const v=parseInt(e.value);return isNaN(v)?def:v;};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function tawOf(name){return S.taw[name]!==undefined?S.taw[name]:(CHAR.talente.find(t=>t[0]===name)||[])[3];}
+function zfwOf(k){if(S.zfw[k]!==undefined)return S.zfw[k];return (CHAR.zauber.find(z=>z[0]===k)||[])[1];}
+function beVal(mode){const b=S.be;switch(mode){case '1':return b;case 'x2':return 2*b;case '-2':return Math.max(0,b-2);case '-3':return Math.max(0,b-3);default:return 0;}}
+const beLabel={'1':'BE','x2':'BE×2','-2':'BE−2','-3':'BE−3'};
+
+/* ================================================================
+   NAVIGATION
+   ================================================================ */
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.id==='t-'+t));
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  S.tab=t;save();
+  ({status:renderStatus,proben:renderProben,zauber:renderZauber,kampf:renderKampf,steigern:renderSteigern,info:renderInfo})[t]();
+  window.scrollTo(0,0);
+}
+$('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showTab(b.dataset.tab);});
+function openSheet(html){$('sheet-in').innerHTML=html;$('sheet').classList.add('on');$('sheet-in').scrollTop=0;}
+function closeSheet(){$('sheet').classList.remove('on');}
+$('sheet').addEventListener('click',e=>{if(e.target===$('sheet'))closeSheet();});
+function updHdr(){$('hdr-ap').textContent='AP frei: '+S.ap;}
+
+/* ================================================================
+   STATUS
+   ================================================================ */
+function meter(key,label,max,color){
+  const v=S[key];const pct=clamp(v/max*100,0,100);
+  let col=color||'var(--green)', note='';
+  if(key==='lep'){
+    col=v<=5?'var(--red)':v<=Math.ceil(max/4)?'var(--red)':v<=Math.ceil(max/3)?'var(--amber)':v<=Math.ceil(max/2)?'#b9b04a':'var(--green)';
+    if(v<=0)note='<span class="tag r">Lebensgefahr!</span>';
+    else if(v<=5)note='<span class="tag r">kampfunfähig (≤5 LeP)</span>';
+    else if(v<=Math.ceil(max/4))note='<span class="tag r">unter ¼ LeP</span>';
+    else if(v<=Math.ceil(max/3))note='<span class="tag a">unter ⅓ LeP</span>';
+    else if(v<=Math.ceil(max/2))note='<span class="tag a">unter ½ LeP</span>';
+  }
+  if(key==='aup'&&v<=0)note='<span class="tag r">erschöpft: handlungsunfähig</span>';
+  if(key==='asp'&&v<=0)note='<span class="tag a">keine AsP: kein Zaubern</span>';
+  if(key==='asp')col='var(--violet)';
+  if(key==='aup')col='var(--blue)';
+  return `<div class="card meter">
+    <div class="row sp"><div class="lbl" style="margin:0">${label}</div><div>${note}</div></div>
+    <div class="row sp" style="margin-top:6px">
+      <button class="btn" data-act="adj" data-k="${key}" data-d="-5">−5</button>
+      <button class="btn" data-act="adj" data-k="${key}" data-d="-1">−1</button>
+      <div class="val mono">${v}<small> / ${max}</small></div>
+      <button class="btn" data-act="adj" data-k="${key}" data-d="1">+1</button>
+      <button class="btn" data-act="adj" data-k="${key}" data-d="5">+5</button>
+    </div>
+    <div class="bar"><i style="width:${pct}%;background:${col}"></i></div>
+    <div class="row"><input type="number" id="amt-${key}" placeholder="Menge" inputmode="numeric" style="max-width:110px">
+      <button class="btn grow" data-act="amt" data-k="${key}" data-s="-1">${key==='lep'?'Schaden':'Abziehen'}</button>
+      <button class="btn grow" data-act="amt" data-k="${key}" data-s="1">${key==='lep'?'Heilen':'Zurück'}</button></div>
+  </div>`;
+}
+function renderStatus(){
+  updHdr();
+  const w=S.wunden;
+  const ini=CHAR.iniBasis+4-S.be-2*w;
+  const at=n=>n-2*w;
+  const effHtml=S.effekte.length?S.effekte.map((e,i)=>`<div class="eff"><div><span class="bold">${esc(e.n)}</span> <span class="dim small">· noch ${e.d} ${e.u}</span></div><button class="btn sm dng" data-act="effdel" data-i="${i}">✕</button></div>`).join(''):'<div class="dim small">Keine laufenden Zauber.</div>';
+  $('t-status').innerHTML=`
+  ${meter('lep','Lebensenergie (LeP)',CHAR.max.lep)}
+  ${meter('aup','Ausdauer (AuP)',CHAR.max.aup)}
+  ${meter('asp','Astralenergie (AsP)',CHAR.max.asp)}
+  <div class="card">
+    <h2>Treffer &amp; Wunden</h2>
+    <div class="row" style="margin-bottom:8px">
+      <div class="grow"><label>Trefferpunkte (TP) des Gegners</label><input type="number" id="in-tp" inputmode="numeric"></div>
+      <div style="width:84px"><label>RS</label><input type="number" id="in-rs" value="${S.rs}" inputmode="numeric"></div>
+    </div>
+    <button class="btn pri full" data-act="hit">Treffer einrechnen</button>
+    <div id="hit-res" class="small" style="margin-top:8px"></div>
+    <hr>
+    <div class="row sp"><div><div class="bold">Wunden: ${w}</div>
+      <div class="dim small">Wundschwelle ${CHAR.wundschwelle}: SP ≥ ${CHAR.wundschwelle} = Wunde</div></div>
+      <div class="row"><button class="btn" data-act="wund" data-d="-1">−</button><button class="btn" data-act="wund" data-d="1">+</button></div></div>
+    ${w>0?`<div class="small warn" style="margin-top:6px">Je Wunde: AT, PA, GE, INI −2, GS −1 → gesamt AT/PA −${2*w}, INI −${2*w}, GS −${w}</div>`:''}
+    <div class="row small dim" style="margin-top:8px"><span>INI aktuell: <b class="bold">${ini} + 1W6</b></span><span>(Basis ${CHAR.iniBasis} +4 Kampfreflexe −BE ${S.be}${w?` −${2*w} Wunden`:''})</span></div>
+  </div>
+  <div class="card">
+    <h2>Laufende Zauber &amp; Effekte</h2>
+    ${effHtml}
+    <div class="row" style="margin-top:8px">
+      <input type="text" id="eff-n" placeholder="Name" style="flex:2;min-width:110px">
+      <input type="number" id="eff-d" placeholder="Dauer" inputmode="numeric" style="flex:1;min-width:64px">
+      <select id="eff-u" style="flex:1;min-width:70px"><option>KR</option><option>SR</option></select>
+      <button class="btn" data-act="effadd">＋</button>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <button class="btn" data-act="nextkr">Nächste Kampfrunde (${S.kr})</button>
+      <button class="btn" data-act="nextsr">Nächste Spielrunde</button>
+    </div>
+    <div class="dim tiny" style="margin-top:6px">KR = Kampfrunde (5 Sek.), SR = Spielrunde (5 Min.). „Nächste Spielrunde“ senkt SR-Effekte um 1 und beendet KR-Effekte.</div>
+  </div>
+  <div class="card">
+    <h2>Rüstung &amp; Behinderung</h2>
+    <div class="grid2">
+      <div><label>Behinderung (BE)</label><div class="stepper"><button class="btn" data-act="be" data-d="-1">−</button><input type="number" value="${S.be}" readonly><button class="btn" data-act="be" data-d="1">+</button></div></div>
+      <div><label>Rüstungsschutz (RS)</label><div class="stepper"><button class="btn" data-act="rs" data-d="-1">−</button><input type="number" value="${S.rs}" readonly><button class="btn" data-act="rs" data-d="1">+</button></div></div>
+    </div>
+    <div class="dim tiny" style="margin-top:6px">Aktuell: Löwenmähne RS 1 / BE 1. BE fließt in Proben und INI ein.</div>
+  </div>
+  <div class="card">
+    <h2>${esc(CHAR.falke.n)}</h2>
+    <div class="grid2">
+      <div><div class="lbl">LeP</div><div class="row sp"><button class="btn sm" data-act="fadj" data-k="fLep" data-d="-1">−</button><b class="mono" style="font-size:1.4rem">${S.fLep}<small class="dim"> /${CHAR.falke.lep}</small></b><button class="btn sm" data-act="fadj" data-k="fLep" data-d="1">+</button></div></div>
+      <div><div class="lbl">AuP</div><div class="row sp"><button class="btn sm" data-act="fadj" data-k="fAup" data-d="-5">−5</button><b class="mono" style="font-size:1.4rem">${S.fAup}<small class="dim"> /${CHAR.falke.aup}</small></b><button class="btn sm" data-act="fadj" data-k="fAup" data-d="5">+5</button></div></div>
+    </div>
+    <div class="dim tiny" style="margin-top:6px">AT ${CHAR.falke.at} · PA ${CHAR.falke.pa} · TP ${CHAR.falke.tp} · RS ${CHAR.falke.rs} · MR ${CHAR.falke.mr} · GS ${CHAR.falke.gs}</div>
+  </div>
+  <div class="card">
+    <h2>Rast</h2>
+    <div class="grid3">
+      <div><label>LeP +</label><input type="number" id="rest-l" inputmode="numeric" placeholder="1W6"></div>
+      <div><label>AsP +</label><input type="number" id="rest-a" inputmode="numeric" placeholder="1W6"></div>
+      <div><label>AuP +</label><input type="number" id="rest-u" inputmode="numeric" placeholder="3W6"></div>
+    </div>
+    <div class="row" style="margin-top:8px"><button class="btn pri grow" data-act="rest">Gewürfeltes eintragen</button><button class="btn grow" data-act="full">Alles auffüllen</button></div>
+    <div class="dim tiny" style="margin-top:6px">Nachtruhe (6 Std.): 1W6 LeP, 1W6 AsP (+1 je gelungener KO-/IN-Probe). Pro Spielrunde Ruhe: 3W6 AuP (+6 bei KO-Probe).</div>
+  </div>`;
+}
+function adjVal(k,d){
+  const max={lep:CHAR.max.lep,aup:CHAR.max.aup,asp:CHAR.max.asp}[k];
+  S[k]=clamp(S[k]+d,0,max+(k==='lep'?0:0));save();renderStatus();
+}
+$('t-status').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='adj')adjVal(b.dataset.k,+b.dataset.d);
+  else if(a==='amt'){const v=num('amt-'+b.dataset.k,0);if(!v){toast('Menge eingeben');return;}adjVal(b.dataset.k,v*(+b.dataset.s));}
+  else if(a==='hit'){
+    const tp=num('in-tp',0),rs=num('in-rs',S.rs);S.rs=rs;
+    const sp=Math.max(0,tp-rs);const wund=sp>=CHAR.wundschwelle;
+    S.lep=clamp(S.lep-sp,0,CHAR.max.lep);if(wund)S.wunden++;save();renderStatus();
+    $('hit-res').innerHTML=`<span class="tag ${wund?'r':'a'}">TP ${tp} − RS ${rs} = ${sp} SP${wund?' → Wunde!':''}</span>`;
+  }
+  else if(a==='wund'){S.wunden=Math.max(0,S.wunden+ +b.dataset.d);save();renderStatus();}
+  else if(a==='be'){S.be=Math.max(0,S.be+ +b.dataset.d);save();renderStatus();}
+  else if(a==='rs'){S.rs=Math.max(0,S.rs+ +b.dataset.d);save();renderStatus();}
+  else if(a==='fadj'){const k=b.dataset.k;const mx=k==='fLep'?CHAR.falke.lep:CHAR.falke.aup;S[k]=clamp(S[k]+ +b.dataset.d,0,mx);save();renderStatus();}
+  else if(a==='effadd'){const n=$('eff-n').value.trim(),d=num('eff-d',0);if(!n||d<=0){toast('Name und Dauer eingeben');return;}S.effekte.push({n,d,u:$('eff-u').value});save();renderStatus();}
+  else if(a==='effdel'){S.effekte.splice(+b.dataset.i,1);save();renderStatus();}
+  else if(a==='nextkr'){S.kr++;S.effekte.forEach(x=>{if(x.u==='KR')x.d--;});const gone=S.effekte.filter(x=>x.d<=0);S.effekte=S.effekte.filter(x=>x.d>0);save();renderStatus();if(gone.length)toast('Beendet: '+gone.map(g=>g.n).join(', '));}
+  else if(a==='nextsr'){S.kr=0;S.effekte.forEach(x=>{if(x.u==='SR')x.d--;});const gone=S.effekte.filter(x=>x.u==='KR'||x.d<=0);S.effekte=S.effekte.filter(x=>x.u==='SR'&&x.d>0);save();renderStatus();if(gone.length)toast('Beendet: '+gone.map(g=>g.n).join(', '));}
+  else if(a==='rest'){S.lep=clamp(S.lep+num('rest-l',0),0,CHAR.max.lep);S.asp=clamp(S.asp+num('rest-a',0),0,CHAR.max.asp);S.aup=clamp(S.aup+num('rest-u',0),0,CHAR.max.aup);save();renderStatus();toast('Eingetragen');}
+  else if(a==='full'){if(confirm('LeP, AuP und AsP voll auffüllen, Wunden und Effekte zurücksetzen?')){S.lep=CHAR.max.lep;S.aup=CHAR.max.aup;S.asp=CHAR.max.asp;S.wunden=0;S.effekte=[];S.kr=0;S.fLep=CHAR.falke.lep;S.fAup=CHAR.falke.aup;save();renderStatus();}}
+});
+
+/* ================================================================
+   PROBEN
+   ================================================================ */
+let pFilter='Alle', pSearch='';
+const GRP=['Alle','Körper','Gesellschaft','Natur','Wissen','Handwerk','Sprachen','Eigene'];
+function renderProben(){
+  const fav=['Sinnenschärfe','Orientierung','Wettervorhersage','Schleichen','Fährtensuchen','Heilkunde Wunden','Seefahrt','Sternkunde'];
+  const items=CHAR.talente.filter(t=>(pFilter==='Alle'||t[1]===pFilter)&&t[0].toLowerCase().includes(pSearch.toLowerCase()));
+  $('t-proben').innerHTML=`
+  <div class="card"><h2>Eigenschaftsprobe</h2>
+    <div class="grid4">${Object.keys(CHAR.attr).map(a=>`<button class="btn" data-act="ep" data-a="${a}"><b class="bold">${a}</b><br><span class="dim small">${CHAR.attr[a]}</span></button>`).join('')}</div>
+  </div>
+  ${pFilter==='Alle'&&!pSearch?`<div class="card"><h2>Favoriten</h2><div class="list">${fav.map(f=>item(CHAR.talente.findIndex(t=>t[0]===f))).join('')}</div></div>`:''}
+  <input type="text" id="p-search" placeholder="Talent suchen …" value="${esc(pSearch)}" style="margin-bottom:8px">
+  <div class="chips">${GRP.map(g=>`<button class="chip ${pFilter===g?'on':''}" data-act="pf" data-g="${g}">${g}</button>`).join('')}</div>
+  <div class="list">${items.map(t=>item(CHAR.talente.indexOf(t))).join('')||'<div class="dim">Nichts gefunden.</div>'}</div>`;
+  const s=$('p-search');s.addEventListener('input',()=>{pSearch=s.value;const p=s.selectionStart;renderProben();const n=$('p-search');n.focus();n.setSelectionRange(p,p);});
+}
+function item(i){const t=CHAR.talente[i];if(!t)return '';
+  return `<button class="item" data-act="tp" data-i="${i}"><div><div class="nm">${esc(t[0])}</div><div class="at">${t[2].join(' / ')}${t[4]?' · '+beLabel[t[4]]:''}</div></div><div class="tw mono">${tawOf(t[0])}</div></button>`;}
+$('t-proben').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.dataset.act==='pf'){pFilter=b.dataset.g;renderProben();}
+  else if(b.dataset.act==='tp')openTalent(+b.dataset.i);
+  else if(b.dataset.act==='ep')openEigen(b.dataset.a);
+});
+
+/* Kernlogik Talentprobe (DSA 4.1): 3W20 gegen drei Eigenschaften, Fehlpunkte aus TaW */
+function talentProbe(att,taw,mod,dice){
+  const ones=dice.filter(d=>d===1).length, tw=dice.filter(d=>d===20).length;
+  const puffer=Math.max(0,taw-mod), malus=Math.max(0,mod-taw);
+  let rem=puffer;const det=[];
+  for(let i=0;i<3;i++){const ea=att[i].v-malus,d=dice[i];
+    if(d<=ea)det.push({n:att[i].n,ea,d,o:0});else{const o=d-ea;rem-=o;det.push({n:att[i].n,ea,d,o});}}
+  let ok=rem>=0, flag='';
+  if(tw>=3)flag='Spektakulärer Patzer';else if(tw>=2)flag='Patzer (Doppel-20)';
+  if(ones>=3)flag='Spektakulärer Erfolg';else if(ones>=2)flag='Glücklicher Erfolg (Doppel-1)';
+  if(tw>=2)ok=false;else if(ones>=2)ok=true;
+  let tap=null;
+  if(ok)tap=Math.max(1,Math.min(Math.max(rem,0),Math.max(taw,1)));
+  return {ok,tap,rem,det,puffer,malus,flag,ones,tw};
+}
+function diceInputs(prefix,names,def){
+  return `<div class="grid3">${names.map((n,i)=>`<div><div class="dice-lbl">${n.n} <b class="bold">${n.v}</b></div><input type="number" id="${prefix}${i}" min="1" max="20" inputmode="numeric" placeholder="W20" value="${def?def[i]:''}"></div>`).join('')}</div>`;
+}
+function readDice(prefix,n){const r=[];for(let i=0;i<n;i++){const v=parseInt($(prefix+i).value);if(isNaN(v)||v<1||v>20)return null;r.push(v);}return r;}
+function openTalent(i){
+  const t=CHAR.talente[i];const taw=tawOf(t[0]);
+  const att=t[2].map(a=>({n:a,v:CHAR.attr[a]}));
+  const be=t[4]?beVal(t[4]):0;
+  window._tp={i,att,taw,be:!!t[4]};
+  openSheet(`<div class="hd"><h2>${esc(t[0])}</h2><button class="btn sm" data-sheet="close">Schließen</button></div>
+  <div class="row small dim" style="margin-bottom:8px"><span>TaW <b class="bold">${taw}</b></span><span>·</span><span>${t[2].join(' / ')} (${att.map(a=>a.v).join(' / ')})</span></div>
+  <div class="grid2">
+    <div><label>Erschwernis (+) / Erleichterung (−)</label><div class="stepper"><button class="btn" data-sheet="mod" data-d="-1">−</button><input type="number" id="tp-mod" value="0" inputmode="numeric"><button class="btn" data-sheet="mod" data-d="1">+</button></div></div>
+    <div><label>${t[4]?`BE anrechnen (${beLabel[t[4]]} = ${be})`:'Keine BE-Wirkung'}</label>${t[4]?`<label class="check"><input type="checkbox" id="tp-be" checked> BE ${be} einrechnen</label>`:'<div class="dim small" style="padding:10px 0">–</div>'}</div>
+  </div>
+  <div style="margin-top:10px"><div class="lbl">Würfel (3W20)</div>${diceInputs('tpd',att)}</div>
+  <button class="btn pri full" style="margin-top:10px" data-sheet="tprobe">Probe auswerten</button>
+  <div id="tp-res"></div>`);
+}
+function openEigen(a){
+  const v=CHAR.attr[a];window._ep={a,v};
+  openSheet(`<div class="hd"><h2>Eigenschaftsprobe ${a}</h2><button class="btn sm" data-sheet="close">Schließen</button></div>
+  <div class="dim small" style="margin-bottom:8px">${CHAR.attrNames[a]} ${v}. Ein W20 gegen den Wert, minus Erschwernis.</div>
+  <div class="grid2"><div><label>Erschwernis (+)</label><input type="number" id="ep-mod" value="0" inputmode="numeric"></div>
+  <div><label>W20</label><input type="number" id="ep-d" min="1" max="20" inputmode="numeric" placeholder="W20"></div></div>
+  <button class="btn pri full" style="margin-top:10px" data-sheet="eprobe">Auswerten</button><div id="ep-res"></div>`);
+}
+$('sheet').addEventListener('click',e=>{
+  const b=e.target.closest('[data-sheet]');if(!b)return;const a=b.dataset.sheet;
+  if(a==='close')closeSheet();
+  else if(a==='mod'){const m=$('tp-mod')||$('sp-mod');if(m)m.value=(parseInt(m.value)||0)+ +b.dataset.d;}
+  else if(a==='tprobe'){
+    const d=readDice('tpd',3);if(!d){toast('Drei Würfel (1–20) eingeben');return;}
+    const t=window._tp;let mod=num('tp-mod',0);const bec=$('tp-be');if(bec&&bec.checked)mod+=CHAR.talente[t.i][4]?beVal(CHAR.talente[t.i][4]):0;
+    const r=talentProbe(t.att,t.taw,mod,d);
+    $('tp-res').innerHTML=renderTalentRes(r,t,mod);
+  }
+  else if(a==='eprobe'){
+    const d=parseInt($('ep-d').value);if(isNaN(d)||d<1||d>20){toast('W20 eingeben');return;}
+    const mod=num('ep-mod',0),e2=window._ep;const eff=e2.v-mod;const ok=d<=eff;
+    let extra='';if(d===1)extra='<div class="good">Natürliche 1: gelungen, mögliches Glück (Meister).</div>';if(d===20)extra='<div class="bad">Natürliche 20: Patzergefahr.</div>';
+    $('ep-res').innerHTML=`<div class="res ${ok?'ok':'no'}"><div class="big ${ok?'good':'bad'}">${ok?'Gelungen':'Misslungen'}</div><div class="t">W20 ${d} gegen ${e2.a} ${e2.v}${mod?` − ${mod}`:''} = ${eff}${ok?'':` (${d-eff} zu hoch)`}</div>${extra}</div>`;
+  }
+  else if(a==='perm'){/* reserved */}
+});
+function renderTalentRes(r,t,mod){
+  const col=r.ok?'good':'bad';
+  const det=r.det.map(d=>`<span class="tag ${d.o?'r':'g'}">${d.n} ${d.ea}: W${d.d} ${d.o?'−'+d.o:'✓'}</span>`).join('');
+  const modTxt=mod?`Erschwernis ${mod>0?'+':''}${mod}${r.malus>0?` · Rest ${r.malus} auf alle Eigenschaften`:''} · `:'';
+  const flagTxt=r.flag?`<div class="${r.ok?'good':'bad'} bold" style="margin-top:4px">${r.flag}${r.ones>=3?' – TaW +1 anrechnen (Meister)':''}</div>`:'';
+  return `<div class="res ${r.ok?'ok':'no'}"><div class="big ${col}">${r.ok?'Gelungen':'Misslungen'}${r.ok?` · TaP* ${r.tap}`:''}</div>
+  <div style="margin-top:6px">${det}</div>
+  <div class="t dim small">${modTxt}TaW-Puffer ${r.puffer} − Fehlpunkte ${r.puffer-r.rem} = ${r.rem}${r.ok&&r.rem<=0?' (gelungen = mindestens 1 TaP*)':''}</div>${flagTxt}</div>`;
+}
+
+/* ================================================================
+   ZAUBER
+   ================================================================ */
+let curSpell=null,lastBuch=null;
+function spellCost(k,z,xv,perm){
+  if(k==='armatrutz')return Math.max(4,xv*xv-Math.floor((z||0)/2));
+  if(k==='balsam')return Math.max(5,xv);
+  if(k==='adlerschwinge')return 4+xv;
+  if(k==='spinnenlauf')return 7+xv;
+  if(k==='firnlauf')return 5+xv;
+  if(k==='pe'||k==='ph')return perm?21:8;
+  return SP[k].c;
+}
+function spellDur(k,z,xv){
+  if(k==='pe'||k==='ph'||k==='chamaelioni')return ['KR',z*10];
+  if(k==='armatrutz'||k==='adlerauge')return ['SR',1];
+  if(k==='adlerschwinge')return ['SR',Math.max(1,Math.floor(xv/3))];
+  if(k==='spinnenlauf'||k==='firnlauf')return ['SR',Math.max(1,Math.floor(xv/2))];
+  if(k==='juckreiz')return ['SR',Math.max(1,Math.floor(z/2))];
+  return null;
+}
+function renderZauber(){
+  if(!curSpell)curSpell=CHAR.zauber[0][0];
+  $('t-zauber').innerHTML=`
+  <div class="card"><h2>Zauber wählen</h2>
+    <div class="chips">${CHAR.zauber.map(z=>`<button class="chip ${curSpell===z[0]?'on':''}" data-act="zs" data-k="${z[0]}">${esc(SP[z[0]].n.split(' (')[0].replace(' Mimikry',''))}</button>`).join('')}</div>
+    <div class="small dim" id="sp-info"></div><div id="sp-pb"></div>
+  </div>
+  <div class="card"><h2>Werte</h2>
+    <div class="grid2"><div><label>ZfW</label><input type="number" id="zfw" inputmode="numeric"></div>
+    <div><label>Erschwernis (+) / Erleichterung (−)</label><input type="number" id="sp-mod" value="0" inputmode="numeric"></div></div>
+    <div id="sp-x" style="display:none;margin-top:8px"><label id="xl">Zusatz</label><input type="number" id="xv" value="0" inputmode="numeric"></div>
+    <div id="sp-mr" style="display:none;margin-top:8px"><label>MR des Ziels</label><input type="number" id="mr" value="0" inputmode="numeric"></div>
+  </div>
+  <div class="card"><h2>Würfel (3W20)</h2><div id="sp-dice"></div>
+    <button class="btn pri full" style="margin-top:10px" data-act="szauber">✦ Zauberprobe auswerten ✦</button>
+    <div id="sp-res"></div></div>`;
+  initSpell();
+}
+function initSpell(){
+  const k=curSpell,s=SP[k];
+  $('sp-info').textContent=s.info;
+  $('zfw').value=zfwOf(k);
+  $('sp-mr').style.display=s.mr?'block':'none';
+  $('sp-x').style.display=s.ex?'block':'none';
+  if(s.ex)$('xl').textContent=s.xl||'Zusatz-AsP';
+  const pb=$('sp-pb');
+  pb.innerHTML=s.pfeil?`<div class="pfeil-box"><b>Permanenz-Variante:</b> Pfeil behält Kräfte bis zum ersten Einsatz · 21 AsP (davon 1 AsP permanent)
+    <label class="check"><input type="checkbox" id="perm-check"> Permanenz verwenden <span class="info small">(+7 Erschwernis)</span></label>
+    <label>Waffenart</label><select id="weapon-type"><option value="0">Pfeil (normal)</option><option value="3">Bolzen (+3)</option><option value="7">Speer (+7)</option></select></div>`:'';
+  const att=s.a.map(a=>({n:a,v:CHAR.attr[a]}));
+  $('sp-dice').innerHTML=diceInputs('spd',att);
+  $('sp-res').innerHTML='';
+}
+function calcSpell(){
+  const k=curSpell,s=SP[k];
+  const attrs=s.a.map(a=>CHAR.attr[a]);
+  const zfw=num('zfw',0);
+  const dice=readDice('spd',3);if(!dice){toast('Drei Würfel (1–20) eingeben');return;}
+  const mr=s.mr?num('mr',0):0, xv=s.ex?num('xv',0):0;
+  const permCheck=$('perm-check'),weaponSel=$('weapon-type');
+  const permMod=(permCheck&&permCheck.checked)?7:0, weapMod=weaponSel?parseInt(weaponSel.value)||0:0;
+  const gen=num('sp-mod',0);
+  const totalMod=permMod+weapMod+gen;
+  const ones=dice.filter(d=>d===1).length,tw=dice.filter(d=>d===20).length;
+  let h=`<div class="res"><div class="lbl">${esc(s.n)}</div>`;
+  let cost,ok,zfp=null;
+  if(ones>=2){
+    zfp=Math.max(0,zfw*2-Math.max(0,totalMod));ok=true;
+    h+=`<div class="big good">✦ Kritischer Erfolg</div><div class="t">Alle drei Würfel bestanden. ZfP* = ZfW×2 − Erschwernis = <span class="bold">${zfp}</span><br><br>${s.w(zfp,xv)}</div>`;
+  }else if(tw>=2){
+    ok=false;h+=`<div class="big bad">✦ Patzer</div><div class="t">Der Meister bestimmt die Folgen laut Fehlzauber-Tabelle. AsP-Kosten fallen trotzdem an.</div>`;
+  }else{
+    const puffer=Math.max(0,zfw-totalMod), malus=Math.max(0,totalMod-zfw);
+    const mod=attrs.map(a=>(s.mr?a-mr:a)-malus);
+    let rem=puffer;const det=[];
+    for(let i=0;i<3;i++){const ea=mod[i],d=dice[i];if(d<=ea)det.push({a:s.a[i],ea,d,o:0});else{const o=d-ea;rem-=o;det.push({a:s.a[i],ea,d,o});}}
+    ok=rem>=0;if(ok)zfp=rem;
+    h+=`<div class="big ${ok?'good':'bad'}">${ok?'✦ Gelungen':'✦ Misslungen'}${ok?` · ZfP* ${rem}`:''}</div><div style="margin-top:6px">`+
+       det.map(d=>`<span class="tag ${d.o?'r':'g'}">${d.a} ${d.ea}: W${d.d} ${d.o?'−'+d.o:'✓'}</span>`).join('')+`</div><div class="t">`;
+    if(totalMod>0){h+=`Erschwernis <span class="bold">${totalMod}</span>${malus>0?` · ZfW aufgebraucht → Eigenschaften je −${malus}`:''}<br>`;}
+    h+=`ZfW-Puffer <span class="bold">${puffer}</span> − Fehlpunkte <span class="bold">${puffer-rem}</span> = <span class="bold">${rem}</span><br><br>${s.w(ok?rem:null,xv)}</div>`;
+  }
+  cost=spellCost(k,zfp,xv,permCheck&&permCheck.checked);
+  const pay=ok?cost:Math.ceil(cost/2);
+  h+=`<hr><div class="row sp"><div>Kosten: <span class="bold">${pay} AsP</span>${ok?'':' <span class="dim small">(halbe Kosten bei Misserfolg)</span>'}${permCheck&&permCheck.checked&&ok?' <span class="dim small">(davon 1 permanent)</span>':''}<div class="dim small">AsP aktuell: ${S.asp}</div></div>
+    <button class="btn pri" data-act="buch">Abbuchen</button></div></div>`;
+  lastBuch={k,pay,ok,zfp,xv,dur:ok?spellDur(k,zfp,xv):null};
+  $('sp-res').innerHTML=h;
+}
+$('t-zauber').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='zs'){curSpell=b.dataset.k;renderZauber();}
+  else if(a==='szauber')calcSpell();
+  else if(a==='buch'&&lastBuch){
+    S.asp=Math.max(0,S.asp-lastBuch.pay);
+    if(lastBuch.dur&&lastBuch.ok){const sd=lastBuch.dur;if(sd[1]>0)S.effekte.push({n:SP[lastBuch.k].n.split(' (')[0],d:sd[1],u:sd[0]});}
+    save();toast(`−${lastBuch.pay} AsP${lastBuch.dur&&lastBuch.ok?' · Effekt notiert':''}`);lastBuch=null;b.disabled=true;
+  }
+});
+$('t-zauber').addEventListener('input',e=>{if(e.target.id==='zfw'){const v=parseInt(e.target.value);if(!isNaN(v))S.zfw[curSpell]=v;}});
+
+/* ================================================================
+   KAMPF
+   ================================================================ */
+let kSub='fern', kH=0,kNS=0;
+function renderKampf(){
+  const sub=`<div class="chips"><button class="chip ${kSub==='fern'?'on':''}" data-act="ks" data-s="fern">Fernkampf</button><button class="chip ${kSub==='nah'?'on':''}" data-act="ks" data-s="nah">Nahkampf</button></div>`;
+  $('t-kampf').innerHTML=sub+(kSub==='fern'?fernHtml():nahHtml());
+  if(kSub==='fern')fernCalc();else nahInit();
+}
+const optH=(arr,sel)=>arr.map(([v,l],i)=>`<option value="${v}" ${i===sel?'selected':''}>${l}</option>`).join('');
+function fernHtml(){
+  const b=CHAR.bogen;
+  return `
+  <div class="card"><div class="row sp"><div><div class="lbl" style="margin:0">Effektiver FK-Wert (W20 ≤ …)</div><div class="small dim">${b.n}: FK ${b.fk}</div></div><div id="f-res" class="mono" style="font-size:2.4rem;font-weight:700;line-height:1">–</div></div>
+    <div id="f-brk" class="small dim" style="margin-top:6px"></div></div>
+  <div class="card"><h2>Ziel</h2>
+    <label>Zielgröße</label><select id="f-zg">${optH([[8,'winzig (+8)'],[6,'sehr klein (+6)'],[4,'klein (+4)'],[2,'mittel – Mensch, Elf, Ork (+2)'],[0,'groß – Pferd, Oger (±0)'],[-2,'sehr groß (−2)']],3)}</select>
+    <label style="margin-top:8px">Deckung</label><select id="f-dk">${optH([[0,'keine'],[2,'halbe Deckung (+2)'],[4,'Dreiviertel-Deckung (+4)']],0)}</select>
+    <label style="margin-top:8px">Bewegung des Ziels</label><select id="f-bw">${optH([[-4,'unbeweglich / fest montiert (−4)'],[-2,'stillstehend (−2)'],[0,'leichte Bewegung (±0)'],[2,'bewegt sich (+2)'],[4,'Ausweichbewegungen / Zickzack (+4)']],2)}</select>
+    <label style="margin-top:8px">Entfernung (Elfenbogen)</label><select id="f-en">${optH([[-2,`sehr nah ≤ ${b.ranges[0]} Schritt (−2)`],[0,`nah ≤ ${b.ranges[1]} (±0)`],[4,`mittel ≤ ${b.ranges[2]} (+4)`],[8,`weit ≤ ${b.ranges[3]} (+8)`],[12,`extrem weit ≤ ${b.ranges[4]} (+12)`]],1)}</select>
+  </div>
+  <div class="card"><h2>Sicht</h2>
+    <select id="f-si">${optH([[0,'Tageslicht'],[2,'Dämmerung / Dunst (+2)'],[4,'Mondlicht / Nebel (+4)'],[6,'Sternenlicht (+6)'],[8,'Finsternis / unsichtbar (+8)']],0)}</select>
+    <label class="check"><input type="checkbox" id="f-dae" checked> Dämmerungssicht (Dunkelheits-Zuschlag halbiert)</label>
+    <label class="check"><input type="checkbox" id="f-eis" checked> Entfernungssinn (−2)</label>
+  </div>
+  <div class="card"><h2>Schuss</h2>
+    <label class="check"><input type="checkbox" id="f-sq"> Schnellschuss (+1 als Scharfschütze, spart 1 Aktion)</label>
+    <label class="check"><input type="checkbox" id="f-z2"> zweiter Schuss in der Kampfrunde (+4)</label>
+    <div class="grid2" style="margin-top:6px"><div><label>Ansage (max. TaW ${tawFK()})</label><input type="number" id="f-an" value="0" min="0" inputmode="numeric"></div>
+      <div><label>sonstiger Zuschlag</label><input type="number" id="f-so" value="0" inputmode="numeric"></div></div>
+    <div class="dim tiny" style="margin-top:6px">Ansage: Probe erschwert um die Ansage, als Scharfschütze die volle Ansage als TP dazu; Aktionen: +½ Ansage, Scharfschütze −2 (mind. +1).</div>
+  </div>
+  <div class="card"><h2>Kampfgetümmel</h2>
+    <div class="grid2"><div><label>Helden im Getümmel</label><div class="stepper"><button class="btn" data-act="gm" data-w="h" data-d="-1">−</button><input type="number" id="f-h" value="${kH}" readonly><button class="btn" data-act="gm" data-w="h" data-d="1">+</button></div></div>
+    <div><label>Gegner im Getümmel</label><div class="stepper"><button class="btn" data-act="gm" data-w="n" data-d="-1">−</button><input type="number" id="f-n" value="${kNS}" readonly><button class="btn" data-act="gm" data-w="n" data-d="1">+</button></div></div></div>
+    <div class="dim tiny" style="margin-top:6px">Erschwernis +2 je Held, +3 je Gegner; die Bewegung des Ziels zählt dann nicht.</div></div>
+  <div class="card"><h2>Pfeilzauber</h2>
+    <div class="grid2"><div><label>Pfeil des Eises, ZfP*</label><input type="number" id="f-pe" value="0" inputmode="numeric"></div><div><label>&nbsp;</label><div class="dim small" id="f-pe-t" style="padding-top:10px"></div></div></div></div>
+  <div class="card"><h2>Würfeln &amp; Schaden</h2>
+    <div class="grid2"><div><label>W20 Angriff</label><input type="number" id="f-d" min="1" max="20" inputmode="numeric"></div>
+    <div><label>TP-Würfel (1W6)</label><input type="number" id="f-tw" min="1" max="6" inputmode="numeric"></div></div>
+    <div class="grid2" style="margin-top:8px"><div><label>RS des Ziels</label><input type="number" id="f-rs" value="0" inputmode="numeric"></div><div><label>KO des Ziels (optional)</label><input type="number" id="f-ko" inputmode="numeric"></div></div>
+    <button class="btn pri full" style="margin-top:10px" data-act="fgo">Schuss auswerten</button>
+    <div id="f-out"></div></div>`;
+}
+function tawFK(){return 12;}
+function fernMods(){
+  const g=id=>parseInt($(id).value)||0;
+  let sicht=g('f-si');if(sicht>0&&$('f-dae').checked)sicht=Math.round(sicht/2);
+  const gem=kH*2+kNS*3;
+  const bew=(kH+kNS)>0?0:g('f-bw');
+  const sq=$('f-sq').checked?1:0, z2=$('f-z2').checked?4:0, an=g('f-an'), so=g('f-so');
+  const eis=$('f-eis').checked?-2:0;
+  const total=g('f-zg')+g('f-dk')+bew+g('f-en')+sicht+gem+sq+z2+an+so+eis;
+  return {total,parts:{Zielgröße:g('f-zg'),Deckung:g('f-dk'),Bewegung:bew,Entfernung:g('f-en'),Sicht:sicht,Getümmel:gem,Schnellschuss:sq,'2. Schuss':z2,Ansage:an,Sonstiges:so,Entfernungssinn:eis},an};
+}
+function fernCalc(){
+  const m=fernMods();const eff=CHAR.bogen.fk-m.total;
+  const r=$('f-res');r.textContent=eff;r.style.color=eff<5?'var(--red)':eff<10?'var(--amber)':'var(--green)';
+  $('f-brk').innerHTML='FK '+CHAR.bogen.fk+Object.entries(m.parts).filter(([k,v])=>v!==0).map(([k,v])=>` <span class="tag ${v>0?'r':'g'}">${k} ${v>0?'+':''}${v}</span>`).join('');
+  const pe=num('f-pe',0);$('f-pe-t').textContent=pe>0?`Entzieht ${Math.floor(pe/2)} AuP/KR · halbe Reichweite`:'';
+  return eff;
+}
+$('t-kampf').addEventListener('input',e=>{if(kSub==='fern'&&e.target.closest('#t-kampf'))fernCalc();});
+$('t-kampf').addEventListener('change',e=>{if(kSub==='fern')fernCalc();});
+$('t-kampf').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='ks'){kSub=b.dataset.s;renderKampf();}
+  else if(a==='gm'){if(b.dataset.w==='h')kH=Math.max(0,kH+ +b.dataset.d);else kNS=Math.max(0,kNS+ +b.dataset.d);$(b.dataset.w==='h'?'f-h':'f-n').value=b.dataset.w==='h'?kH:kNS;fernCalc();}
+  else if(a==='fgo'){
+    const eff=fernCalc(),d=parseInt($('f-d').value);if(isNaN(d)||d<1||d>20){toast('W20 eingeben');return;}
+    const hit=d<=eff;let h=`<div class="res ${hit?'ok':'no'}"><div class="big ${hit?'good':'bad'}">${hit?'Treffer':'Daneben'}</div><div class="t">W20 ${d} gegen ${eff}${hit?'':` (${d-eff} zu hoch)`}`;
+    if(d===1)h+=`<br><span class="good">Natürliche 1: Glückstreffer möglich (Bestätigungswurf, Meister).</span>`;
+    if(d===20)h+=`<br><span class="bad">Natürliche 20: Patzergefahr. Kontrollwurf ohne Modifikatoren auf FK ${CHAR.bogen.fk}; misslingt er, 2W6 auf die Patzertabelle Fernkampf.</span>`;
+    h+='</div>';
+    if(hit||d===1){
+      const en=parseInt($('f-en').value),idx={'-2':0,'0':1,'4':2,'8':3,'12':4}[en];const bonus=CHAR.bogen.rangeTP[idx];
+      const tw=parseInt($('f-tw').value);const m=fernMods();const an=m.an;
+      const pe=num('f-pe',0);
+      if(!isNaN(tw)){
+        const tp=tw+CHAR.bogen.tpPlus+bonus+an; // Scharfschütze: volle Ansage
+        const rs=num('f-rs',0),sp=Math.max(0,tp-rs);const ko=num('f-ko',0);
+        h+=`<div class="res"><div class="lbl">Schaden</div><div class="t">1W6 (${tw}) + ${CHAR.bogen.tpPlus} + Entfernung ${bonus>=0?'+':''}${bonus}${an?` + Ansage ${an}`:''} = <span class="bold">${tp} TP</span> − RS ${rs} = <span class="bold">${sp} SP</span>`;
+        if(ko>0){const ws=Math.floor(ko/2)-2;h+=`<br>Wunde ab mehr als KO/2−2 = ${ws} SP: <span class="${sp>ws?'bad':'good'} bold">${sp>ws?'Wunde!':'keine Wunde'}</span>`;}
+        if(pe>0)h+=`<br><span class="info">Pfeil des Eises: zusätzlich ${Math.floor(pe/2)} AuP-Entzug pro KR.</span>`;
+        h+='</div>';
+      }else h+=`<div class="dim small" style="margin-top:6px">TP: 1W6 + ${CHAR.bogen.tpPlus} + Entfernung ${bonus>=0?'+':''}${bonus}${an?` + Ansage ${an}`:''}. Würfel eintragen für die Summe.</div>`;
+    }
+    $('f-out').innerHTML=h;
+  }
+  else if(a==='nroll')nahRoll(b.dataset.m);
+  else if(a==='nw'){nahSel=+b.dataset.i;renderKampf();}
+  else if(a==='nwb'){nWB=Math.max(0,nWB+ +b.dataset.d);renderKampf();}
+});
+let nahSel=0,nWB=0;
+function nahHtml(){
+  const w=S.wunden;const wp=2*w;
+  const ausw=Math.round(CHAR.paBasis/2)+3-S.be-wp;
+  const wp1=CHAR.nahkampf[nahSel];
+  return `
+  <div class="card"><h2>Waffe</h2>
+    <div class="chips">${CHAR.nahkampf.map((x,i)=>`<button class="chip ${nahSel===i?'on':''}" data-act="nw" data-i="${i}">${esc(x.n.split(' (')[0])}</button>`).join('')}</div>
+    <div class="grid3" style="margin-top:4px">
+      <div><div class="lbl">AT</div><div class="mono" style="font-size:1.8rem;font-weight:700">${wp1.at-wp-nWB}</div></div>
+      <div><div class="lbl">PA</div><div class="mono" style="font-size:1.8rem;font-weight:700">${wp1.pa-wp}</div></div>
+      <div><div class="lbl">TP</div><div style="font-size:1.1rem;font-weight:700;padding-top:6px">${wp1.tp}${nWB?` +${nWB}`:''}</div></div>
+    </div>
+    <div class="dim small">${esc(wp1.n)} · INI ${wp1.ini} · WM ${wp1.wm} · BF ${wp1.bf}${wp1.note?' · '+esc(wp1.note):''}</div>
+    ${w?`<div class="warn small" style="margin-top:4px">Wunden (${w}): AT/PA −${wp} bereits abgezogen.</div>`:''}
+  </div>
+  <div class="card"><h2>Wuchtschlag (Ansage)</h2>
+    <div class="row sp"><div class="dim small">AT −Ansage, TP +Ansage (Basis-Manöver)</div><div class="stepper"><button class="btn" data-act="nwb" data-d="-1">−</button><b class="mono" style="min-width:28px;text-align:center">${nWB}</b><button class="btn" data-act="nwb" data-d="1">+</button></div></div></div>
+  <div class="card"><h2>Würfeln</h2>
+    <label>W20</label><input type="number" id="n-d" min="1" max="20" inputmode="numeric" placeholder="W20">
+    <div class="grid2" style="margin-top:8px"><button class="btn pri" data-act="nroll" data-m="at">Attacke</button><button class="btn pri" data-act="nroll" data-m="pa">Parade</button></div>
+    <div id="n-out"></div></div>
+  <div class="card"><h2>Ausweichen &amp; Initiative</h2>
+    <div class="row sp"><div>Ausweichen: <span class="bold mono" style="font-size:1.4rem">${ausw}</span><div class="dim tiny">PA-Basis ½ (${Math.round(CHAR.paBasis/2)}) +3 Ausweichen I −BE${wp?` −Wunden ${wp}`:''}; ohne Gewähr, bitte mit dem Blatt abgleichen</div></div>
+    <div>INI: <span class="bold mono" style="font-size:1.4rem">${CHAR.iniBasis+4-S.be-wp}</span> <span class="dim small">+1W6</span></div></div></div>`;
+}
+function nahInit(){}
+function nahRoll(m){
+  const d=parseInt($('n-d').value);if(isNaN(d)||d<1||d>20){toast('W20 eingeben');return;}
+  const w=CHAR.nahkampf[nahSel];const wp=2*S.wunden;
+  const val=m==='at'?w.at-wp-nWB:w.pa-wp;const hit=d<=val;
+  let h=`<div class="res ${hit?'ok':'no'}"><div class="big ${hit?'good':'bad'}">${m==='at'?(hit?'Treffer':'Daneben'):(hit?'Pariert':'Nicht pariert')}</div><div class="t">W20 ${d} gegen ${val}${hit?'':` (${d-val} zu hoch)`}`;
+  if(d===1)h+=`<br><span class="good">Natürliche 1: Glückstreffer möglich: Bestätigungswurf, bei Erfolg doppelte TP bzw. Gegner pariert nicht (Meister).</span>`;
+  if(d===20)h+=`<br><span class="bad">Natürliche 20: Patzergefahr: Bestätigungswurf, bei Misslingen 2W6 Patzertabelle.</span>`;
+  $('n-out').innerHTML=h+'</div></div>';
+}
+
+/* ================================================================
+   STEIGERN
+   ================================================================ */
+const SKT={ // Zeile = Zielwert, Spalten A+ A B C D E F G H
+  akt:[1,1,2,3,4,5,8,10,20],
+  1:[1,1,2,2,3,4,6,8,16],2:[1,2,4,6,7,9,14,18,35],3:[1,3,6,9,12,15,22,30,60],4:[2,4,8,13,17,21,32,42,85],
+  5:[4,6,11,17,22,28,41,55,110],6:[5,7,14,21,27,34,50,70,140],7:[6,8,17,25,33,41,60,85,165],8:[8,10,19,29,39,48,75,95,195],
+  9:[9,11,22,34,45,55,85,110,220],10:[11,13,25,38,50,65,95,125,250],11:[12,14,28,43,55,70,105,140,280],12:[14,16,32,47,65,80,120,160,320],
+  13:[15,17,35,51,70,85,130,175,350],14:[17,19,38,55,75,95,140,190,380],15:[19,21,41,60,85,105,155,210,410],16:[20,22,45,65,90,110,165,220,450],
+  17:[22,24,48,70,95,120,180,240,480],18:[24,26,51,75,105,130,195,260,510],19:[25,27,55,80,110,135,210,270,550],20:[27,29,58,85,115,145,220,290,580]
+};
+const COLS=['A+','A','B','C','D','E','F','G','H'];
+let stSel=null, stOpt={sa:false,lm:false,ss:false,se:false,act:false,five:true};
+function stItems(){
+  const out=[];
+  CHAR.talente.forEach(t=>{if(t[5]!=='-')out.push({k:'t:'+t[0],n:t[0],cur:tawOf(t[0]),col:t[5],ws:!!t[6],kind:'Talent'});});
+  CHAR.kampftalente.forEach(t=>out.push({k:'k:'+t[0],n:t[0]+' (Kampf)',cur:S.taw[t[0]]!==undefined?S.taw[t[0]]:t[1],col:t[2],ws:!!t[3],kind:'Kampf',base:t[0]}));
+  CHAR.zauber.forEach(z=>out.push({k:'z:'+z[0],n:SP[z[0]].n.split(' (')[0],cur:zfwOf(z[0]),col:z[2],ws:!!z[3],kind:'Zauber',key:z[0]}));
+  return out;
+}
+function seKey(it){return it.base||it.key||it.n;}
+function stCalc(it,target){
+  let ci=COLS.indexOf(it.col);if(ci<0)ci=2;
+  const steps=[];let total=0;
+  const shift=(stOpt.sa?-1-(it.ws?1:0):0)+(stOpt.lm?-1:0);
+  for(let v=it.cur+1;v<=target;v++){
+    let c=ci+shift+(stOpt.ss?(v>10?2:1):0);
+    const first=v===it.cur+1;
+    let se=false;if(first&&stOpt.se){c-=1;se=true;}
+    c=clamp(c,0,8);
+    const cost=SKT[v]?SKT[v][c]:null;
+    steps.push({v,col:COLS[c],cost,se});if(cost!==null)total+=cost;
+  }
+  return {steps,total};
+}
+function renderSteigern(){
+  updHdr();
+  const items=stItems();
+  if(!stSel||!items.find(i=>i.k===stSel))stSel=items[0].k;
+  const it=items.find(i=>i.k===stSel);
+  const seAvail=!!S.se[seKey(it)];
+  if(!seAvail)stOpt.se=false;
+  const tgt=stOpt.target&&stOpt.targetFor===it.k?stOpt.target:it.cur+1;
+  const calc=stCalc(it,tgt);
+  const need=calc.total+(stOpt.act?SKT.akt[clamp(COLS.indexOf(it.col),0,8)]*(stOpt.five?5:1):0);
+  $('t-steigern').innerHTML=`
+  <div class="card"><div class="row sp"><div><div class="lbl" style="margin:0">AP-Guthaben</div><div class="mono" style="font-size:2rem;font-weight:700;color:var(--gold2)">${S.ap}</div></div>
+    <div style="width:130px"><label>anpassen</label><input type="number" id="st-ap" value="${S.ap}" inputmode="numeric"></div></div></div>
+  <div class="card"><h2>Was steigern?</h2>
+    <select id="st-sel">${['Talent','Kampf','Zauber'].map(g=>`<optgroup label="${g}">${items.filter(i=>i.kind===g).map(i=>`<option value="${i.k}" ${i.k===stSel?'selected':''}>${esc(i.n)} (${i.cur})</option>`).join('')}</optgroup>`).join('')}</select>
+    <div class="row sp small dim" style="margin-top:8px"><span>Spalte (inkl. Weltsicht): <b class="bold">${it.col}</b></span><span>aktuell <b class="bold">${it.cur}</b></span></div>
+    <div class="grid2" style="margin-top:8px"><div><label>Zielwert</label><div class="stepper"><button class="btn" data-act="sv" data-d="-1">−</button><input type="number" id="st-tgt" value="${tgt}" inputmode="numeric"><button class="btn" data-act="sv" data-d="1">+</button></div></div><div></div></div>
+  </div>
+  <div class="card"><h2>Erleichterungen</h2>
+    <label class="check"><input type="checkbox" data-opt="se" ${stOpt.se?'checked':''} ${seAvail?'':'disabled'}> Spezielle Erfahrung (nächster Schritt −1 Spalte) ${seAvail?'<span class="tag g">vorhanden</span>':'<span class="tag">keine</span>'}</label>
+    <label class="check"><input type="checkbox" data-opt="lm" ${stOpt.lm?'checked':''}> Lehrmeister / Gefährte (−1 Spalte)</label>
+    <label class="check"><input type="checkbox" data-opt="sa" ${stOpt.sa?'checked':''}> Salasandra mit der Sippe (−1 Spalte${it.ws?', Weltsicht entfällt':''})</label>
+    <label class="check"><input type="checkbox" data-opt="ss" ${stOpt.ss?'checked':''}> Selbststudium (+1 Spalte, ab TaW 10 +2)</label>
+    <label class="check"><input type="checkbox" data-opt="act" ${stOpt.act?'checked':''}> Noch nicht aktiviert (Aktivierung zahlen)</label>
+    ${stOpt.act?`<label class="check"><input type="checkbox" data-opt="five" ${stOpt.five?'checked':''}> Aktivierung ×5 (wie in deiner Excel)</label>`:''}
+  </div>
+  <div class="card"><h2>Kosten</h2>
+    <table class="t"><tr><th>Schritt</th><th>Spalte</th><th>AP</th></tr>
+    ${stOpt.act?`<tr><td>Aktivierung</td><td>${it.col}</td><td>${SKT.akt[clamp(COLS.indexOf(it.col),0,8)]*(stOpt.five?5:1)}</td></tr>`:''}
+    ${calc.steps.map(s=>`<tr><td>→ ${s.v}</td><td>${s.col}${s.se?' <span class="tag g">SE</span>':''}</td><td>${s.cost===null?'?':s.cost}</td></tr>`).join('')||'<tr><td colspan="3" class="dim">Zielwert über dem aktuellen Wert wählen.</td></tr>'}
+    <tr><td colspan="2"><b class="bold">Summe</b></td><td><b class="bold">${need}</b></td></tr></table>
+    <div class="small ${S.ap-need>=0?'good':'bad'}" style="margin-top:6px">${S.ap-need>=0?`Danach ${S.ap-need} AP frei.`:`Es fehlen ${need-S.ap} AP.`}</div>
+    <button class="btn pri full" style="margin-top:8px" data-act="sbook" ${calc.steps.length&&S.ap-need>=0?'':'disabled'}>Steigerung buchen</button>
+    <div class="dim tiny" style="margin-top:6px">Die Höchstwerte (Eigenschaft +3) prüft die App nicht, bitte selbst beachten.</div>
+  </div>
+  <div class="card"><h2>Verlauf</h2>${S.log.length?S.log.slice().reverse().slice(0,12).map(l=>`<div class="small" style="padding:3px 0;border-bottom:1px solid #43321a">${esc(l)}</div>`).join(''):'<div class="dim small">Noch keine Buchungen.</div>'}</div>`;
+}
+$('t-steigern').addEventListener('change',e=>{
+  if(e.target.id==='st-sel'){stSel=e.target.value;stOpt.target=null;renderSteigern();}
+  else if(e.target.id==='st-ap'){S.ap=parseInt(e.target.value)||0;save();renderSteigern();}
+  else if(e.target.id==='st-tgt'){stOpt.target=parseInt(e.target.value)||0;stOpt.targetFor=stSel;renderSteigern();}
+  else if(e.target.dataset.opt){stOpt[e.target.dataset.opt]=e.target.checked;renderSteigern();}
+});
+$('t-steigern').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.dataset.act==='sv'){const it=stItems().find(i=>i.k===stSel);const cur=stOpt.target&&stOpt.targetFor===stSel?stOpt.target:it.cur+1;stOpt.target=Math.max(it.cur,cur+ +b.dataset.d);stOpt.targetFor=stSel;renderSteigern();}
+  else if(b.dataset.act==='sbook'){
+    const it=stItems().find(i=>i.k===stSel);const tgt=stOpt.target&&stOpt.targetFor===stSel?stOpt.target:it.cur+1;
+    const calc=stCalc(it,tgt);const need=calc.total+(stOpt.act?SKT.akt[clamp(COLS.indexOf(it.col),0,8)]*(stOpt.five?5:1):0);
+    if(need>S.ap)return;
+    S.ap-=need;
+    if(it.kind==='Zauber')S.zfw[it.key]=tgt;else if(it.kind==='Kampf')S.taw[it.base]=tgt;else S.taw[it.n]=tgt;
+    if(stOpt.se)S.se[seKey(it)]=false;
+    S.log.push(`${new Date().toLocaleDateString('de-DE')}: ${it.n} ${it.cur} → ${tgt} (${need} AP)`);
+    stOpt.target=null;stOpt.se=false;stOpt.act=false;save();renderSteigern();toast('Gebucht');
+  }
+});
+
+/* ================================================================
+   INFO
+   ================================================================ */
+function renderInfo(){
+  $('t-info').innerHTML=`
+  <div class="card"><h2>Kampfwerte</h2>
+    <table class="t"><tr><td>AT-Basis</td><td>${CHAR.atBasis}</td><td>PA-Basis</td><td>${CHAR.paBasis}</td></tr>
+    <tr><td>FK-Basis</td><td>${CHAR.fkBasis}</td><td>INI-Basis</td><td>${CHAR.iniBasis}</td></tr>
+    <tr><td>MR</td><td>${CHAR.mr}</td><td>GS</td><td>${CHAR.gs}</td></tr>
+    <tr><td>Wundschwelle</td><td>${CHAR.wundschwelle}</td><td>Eigenschaften</td><td class="small">${Object.entries(CHAR.attr).map(([k,v])=>k+' '+v).join(', ')}</td></tr></table></div>
+  <div class="card"><h2>Vorteile</h2>${CHAR.vorteile.map(v=>`<span class="tag g">${esc(v)}</span>`).join('')}
+    <h2 style="margin-top:12px">Nachteile</h2>${CHAR.nachteile.map(v=>`<span class="tag r">${esc(v)}</span>`).join('')}</div>
+  <div class="card"><h2>Sonderfertigkeiten</h2>${Object.entries(CHAR.sf).map(([g,l])=>`<div class="small dim" style="margin-top:4px">${g}</div>${l.map(v=>`<span class="tag b">${esc(v)}</span>`).join('')}`).join('')}</div>
+  <div class="card"><h2>Ausrüstung</h2>${CHAR.ausruestung.map(v=>`<div class="small" style="padding:3px 0;border-bottom:1px solid #43321a">${esc(v)}</div>`).join('')}</div>
+  <div class="card"><h2>Regeln auf einen Blick</h2>
+    <details><summary>Talentprobe</summary><div class="small">3W20, jeweils gegen die Eigenschaft. Jeder Punkt über dem Wert kostet 1 TaP. Bleibt TaP ≥ 0 übrig, ist die Probe geglückt (mind. 1 TaP*). Erschwernis senkt den TaW; reicht er nicht, sinken die Eigenschaften. Doppel-1 = Erfolg, Doppel-20 = Patzer; dreifach = spektakulär. Negative TaW wirken wie Erschwernis.</div></details>
+    <details><summary>Zauberprobe</summary><div class="small">Wie Talentprobe mit ZfW. ZfP* sind die übrigen Punkte. Misserfolg: halbe AsP. Erschwernis erst gegen den ZfW, Rest gegen die Eigenschaften.</div></details>
+    <details><summary>Fernkampf-Modifikatoren</summary><table class="t">
+      <tr><th colspan="2">Zielgröße</th></tr><tr><td>winzig / sehr klein / klein</td><td>+8 / +6 / +4</td></tr><tr><td>mittel / groß / sehr groß</td><td>+2 / ±0 / −2</td></tr>
+      <tr><th colspan="2">Deckung &amp; Sicht (Größenklassen kleiner, je +2)</th></tr><tr><td>halbe / ¾ Deckung</td><td>+2 / +4</td></tr><tr><td>Dämmerung, Dunst</td><td>+2</td></tr><tr><td>Mondlicht, Nebel</td><td>+4</td></tr><tr><td>Sternenlicht</td><td>+6</td></tr><tr><td>Finsternis / unsichtbar</td><td>+8</td></tr>
+      <tr><th colspan="2">Bewegung</th></tr><tr><td>stillstehend / unbeweglich</td><td>−2 / −4</td></tr><tr><td>bewegt sich / Ausweichen</td><td>+2 / +4</td></tr>
+      <tr><th colspan="2">Entfernung</th></tr><tr><td>sehr nah / nah / mittel</td><td>−2 / ±0 / +4</td></tr><tr><td>weit / extrem weit</td><td>+8 / +12</td></tr>
+      <tr><th colspan="2">Weitere</th></tr><tr><td>Schnellschuss (Scharfschütze)</td><td>+2 (+1)</td></tr><tr><td>zweiter Schuss / Wurf</td><td>+4 / +2</td></tr></table></details>
+    <details><summary>Wunden</summary><div class="small">Schaden (nach RS) ≥ Wundschwelle (${CHAR.wundschwelle}) = Wunde. Je Wunde AT, PA, GE, INI −2 und GS −1. Bei Pfeilen: Wunde bei mehr als KO/2 − 2 SP. LeP ≤ 5: kampfunfähig, ≤ 0: Lebensgefahr.</div></details>
+    <details><summary>Elfische Weltsicht</summary><div class="small">Alle Talente und Zauber, die keine Leittalente/Leitzauber sind, werden eine Spalte teurer gesteigert. Salasandra mit der Sippe hebt das auf (und senkt zusätzlich um eine Spalte).</div></details>
+  </div>
+  <div class="card"><h2>Phileasson-Saga: Notizen</h2>
+    <textarea id="notes" placeholder="Reiseverlauf, Personen, Hinweise …">${esc(S.phil)}</textarea>
+    <h2 style="margin-top:12px">Weitere Notizen</h2>
+    <textarea id="notes2" placeholder="Beliebiges …">${esc(S.notes)}</textarea></div>
+  <div class="card"><h2>Sicherung</h2>
+    <div class="dim small" style="margin-bottom:8px">Alle Daten liegen nur in diesem Browser. Kopiere sie zur Sicherheit oder stelle sie auf einem anderen Gerät wieder her.</div>
+    <div class="grid2"><button class="btn" data-act="exp">Kopieren</button><button class="btn" data-act="imp">Einfügen &amp; laden</button></div>
+    <button class="btn dng full" style="margin-top:8px" data-act="reset">Alles zurücksetzen</button></div>`;
+}
+$('t-info').addEventListener('input',e=>{if(e.target.id==='notes'){S.phil=e.target.value;save();}else if(e.target.id==='notes2'){S.notes=e.target.value;save();}});
+$('t-info').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.dataset.act==='exp'){const t=JSON.stringify(S);try{await navigator.clipboard.writeText(t);toast('In die Zwischenablage kopiert');}catch(x){prompt('Kopieren:',t);}}
+  else if(b.dataset.act==='imp'){const t=prompt('Gesicherte Daten einfügen:');if(!t)return;try{S=Object.assign(DEFAULT(),JSON.parse(t));save();renderInfo();updHdr();toast('Geladen');}catch(x){toast('Ungültige Daten');}}
+  else if(b.dataset.act==='reset'){if(confirm('Wirklich alle gespeicherten Daten löschen?')){S=DEFAULT();save();renderInfo();updHdr();}}
+});
+
+/* ================================================================ START */
+showTab(['status','proben','zauber','kampf','steigern','info'].includes(S.tab)?S.tab:'status');
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+</script>
+</body>
+</html>
