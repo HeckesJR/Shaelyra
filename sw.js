@@ -1,5 +1,5 @@
 // Offline-Cache: alles, was die App braucht, wird beim ersten Laden gespeichert.
-const CACHE = 'shaelyra-v1';
+const CACHE = 'shaelyra-v2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
